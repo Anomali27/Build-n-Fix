@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
 use Illuminate\Support\Facades\Route;
 
@@ -57,6 +58,15 @@ Route::prefix('categories')->name('categories.')->group(function () {
 });
 
 Route::get('/products', [ProductController::class, 'index'])->name('products.index');
+
+// ── Orders ─────────────────────────────────────────────
+Route::prefix('orders')->name('orders.')->group(function () {
+    Route::get('/', [OrderController::class, 'index'])
+        ->name('index');
+
+    Route::get('/{order}', [OrderController::class, 'show'])
+        ->name('show');
+});
 
 // ── Admin ─────────────────────────────────────────────
 Route::get('/admin/dashboard', function () {
