@@ -18,12 +18,17 @@ class SyncSessionAuth
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (Session::has('user') && ! Auth::check()) {
+        if (Session::has('user')) {
             $userData = Session::get('user');
             if (is_array($userData)) {
-                // Add remember_token so Laravel's Auth internals don't error.
-                // This is NOT stored in the session — it is only passed to GenericUser.
-                Auth::setUser(new GenericUser(array_merge($userData, ['remember_token' => null])));
+                $id = (int) ($userData['id'] ?? $userData['user_id'] ?? 1);
+                $fullUser = array_merge($userData, [
+                    'id' => $id,
+                    'user_id' => $id,
+                    'remember_token' => null,
+                ]);
+                $genericUser = new GenericUser($fullUser);
+                Auth::setUser($genericUser);
             }
         }
 

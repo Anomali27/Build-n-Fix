@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\BranchMiddleware;
+use App\Http\Middleware\CustomerAuth;
 use App\Http\Middleware\RoleMiddleware;
 use App\Http\Middleware\SyncSessionAuth;
 use Illuminate\Foundation\Application;
@@ -19,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
             SyncSessionAuth::class,
         ]);
         $middleware->alias([
+            'auth' => CustomerAuth::class,
             'role' => RoleMiddleware::class,
             'branch' => BranchMiddleware::class,
         ]);

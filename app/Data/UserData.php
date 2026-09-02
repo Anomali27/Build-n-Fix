@@ -55,15 +55,43 @@ class UserData
     ];
 
     /**
-     * Get all users (static mock + session-registered customers).
+     * Get all users (static mock + session-registered customers) with overrides applied.
      *
      * @return array<int, array<string, mixed>>
      */
     public static function all(): array
     {
         $registered = Session::get('registered_users', []);
+        $all = array_merge(static::$users, $registered);
+        $overrides = Session::get('user_overrides', []);
 
-        return array_merge(static::$users, $registered);
+        if (! empty($overrides)) {
+            foreach ($all as &$user) {
+                $id = (int) ($user['user_id'] ?? $user['id'] ?? 0);
+                if ($id > 0 && isset($overrides[$id])) {
+                    $user = array_merge($user, $overrides[$id]);
+                }
+            }
+        }
+
+        return $all;
+    }
+
+    /**
+     * Find a user by ID.
+     *
+     * @return array<string, mixed>|null
+     */
+    public static function find(int $userId): ?array
+    {
+        foreach (static::all() as $user) {
+            $id = (int) ($user['user_id'] ?? $user['id'] ?? 0);
+            if ($id === $userId) {
+                return $user;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -98,8 +126,11 @@ class UserData
             return null;
         }
 
+        $userId = (int) ($user['user_id'] ?? $user['id'] ?? 1);
+
         return [
-            'user_id' => $user['user_id'],
+            'id' => $userId,
+            'user_id' => $userId,
             'name' => $user['name'],
             'email' => $user['email'],
             'role' => $user['role'],
@@ -126,6 +157,7 @@ class UserData
         $newId = count($allUsers) + 1;
 
         $newUser = [
+            'id' => $newId,
             'user_id' => $newId,
             'name' => trim($data['name']),
             'email' => strtolower(trim($data['email'])),
@@ -143,6 +175,7 @@ class UserData
             'success' => true,
             'message' => 'Account created successfully! Welcome to Build n Fix.',
             'user' => [
+                'id' => $newUser['id'],
                 'user_id' => $newUser['user_id'],
                 'name' => $newUser['name'],
                 'email' => $newUser['email'],
@@ -150,5 +183,75 @@ class UserData
                 'branch' => $newUser['branch'],
             ],
         ];
+    }
+
+    /**
+     * Update user's name in overrides & session.
+     */
+    public static function updateName(int $userId, string $newName): bool
+    {
+        $overrides = Session::get('user_overrides', []);
+        if (! isset($overrides[$userId])) {
+            $overrides[$userId] = [];
+        }
+        $overrides[$userId]['name'] = trim($newName);
+        Session::put('user_overrides', $overrides);
+
+        $registered = Session::get('registered_users', []);
+        foreach ($registered as &$user) {
+            $id = (int) ($user['user_id'] ?? $user['id'] ?? 0);
+            if ($id === $userId) {
+                $user['name'] = trim($newName);
+            }
+        }
+        Session::put('registered_users', $registered);
+
+        $sessionUser = Session::get('user');
+        if (is_array($sessionUser)) {
+            $sId = (int) ($sessionUser['user_id'] ?? $sessionUser['id'] ?? 0);
+            if ($sId === $userId) {
+                $sessionUser['name'] = trim($newName);
+                Session::put('user', $sessionUser);
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Verify user's current password.
+     */
+    public static function verifyPassword(int $userId, string $password): bool
+    {
+        $user = static::find($userId);
+        if (! $user) {
+            return false;
+        }
+
+        return ($user['password'] ?? 'password') === $password;
+    }
+
+    /**
+     * Update user's password in overrides & registered users.
+     */
+    public static function updatePassword(int $userId, string $newPassword): bool
+    {
+        $overrides = Session::get('user_overrides', []);
+        if (! isset($overrides[$userId])) {
+            $overrides[$userId] = [];
+        }
+        $overrides[$userId]['password'] = $newPassword;
+        Session::put('user_overrides', $overrides);
+
+        $registered = Session::get('registered_users', []);
+        foreach ($registered as &$user) {
+            $id = (int) ($user['user_id'] ?? $user['id'] ?? 0);
+            if ($id === $userId) {
+                $user['password'] = $newPassword;
+            }
+        }
+        Session::put('registered_users', $registered);
+
+        return true;
     }
 }

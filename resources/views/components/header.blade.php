@@ -75,12 +75,8 @@
                     </svg>
                 </a>
 
-                <!-- Profile Avatar Icon -->
-                <a href="#" title="Profil Pelanggan" class="p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition-colors">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                </a>
+                <!-- Profile Avatar Dropdown -->
+                <x-profile-dropdown />
             @endauth
 
             @guest
