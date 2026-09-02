@@ -1,0 +1,33 @@
+<?php
+
+namespace App\Data;
+
+class BranchData
+{
+    public static function getAll(): array
+    {
+        return [
+            [
+                'id' => 1,
+                'name' => 'Serdam',
+                'city' => 'Pontianak',
+                'status' => 'Buka',
+                'image' => 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=800&auto=format&fit=crop&q=80',
+            ],
+            [
+                'id' => 2,
+                'name' => 'Gajahmada',
+                'city' => 'Pontianak',
+                'status' => 'Buka',
+                'image' => 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=800&auto=format&fit=crop&q=80',
+            ],
+            [
+                'id' => 3,
+                'name' => 'Kota Baru',
+                'city' => 'Pontianak',
+                'status' => 'Buka',
+                'image' => 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&auto=format&fit=crop&q=80',
+            ],
+        ];
+    }
+}
