@@ -68,9 +68,6 @@
         </div>
     </div>
 
-    <!-- 3. FEEDBACK ALERT -->
-    <x-alert />
-
     <!-- 4. SORT AND CONTROL BAR -->
     <div class="bg-white rounded-2xl border border-gray-200/80 p-4 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
         <div class="text-xs sm:text-sm text-gray-600 font-medium">

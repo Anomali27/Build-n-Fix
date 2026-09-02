@@ -33,8 +33,6 @@
         @endauth
     </div>
 
-    <!-- 3. FEEDBACK ALERT -->
-    <x-alert />
 
     <!-- 4. RESULT AND SORT BAR -->
     <div class="bg-white rounded-2xl border border-gray-200/80 p-4 mb-8 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">

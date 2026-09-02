@@ -9,8 +9,13 @@
         selectedBranchId: {{ $branchStocks[0]['branch_id'] ?? 1 }},
         selectedBranchStock: {{ $branchStocks[0]['stock'] ?? 10 }},
         selectedBranchName: '{{ $branchStocks[0]['branch_name'] ?? 'Serdam' }}',
-        showSuccessModal: false,
-        cartCount: 1,
+        selectedFulfillment: null,
+        fulfillmentError: false,
+        showConfirmModal: false,
+        showSuccessToast: false,
+        cartCount: 0,
+        actionType: 'cart',
+        unitPrice: {{ $product['price'] ?? 0 }},
         
         selectBranch(id, name, stock) {
             this.selectedBranchId = id;
@@ -21,6 +26,10 @@
             } else if (stock === 0) {
                 this.quantity = 1;
             }
+        },
+        selectFulfillment(method) {
+            this.selectedFulfillment = method;
+            this.fulfillmentError = false;
         },
         increment() {
             if (this.selectedBranchStock > 0 && this.quantity < this.selectedBranchStock) {
@@ -34,19 +43,41 @@
                 this.quantity--;
             }
         },
+        formatRupiah(amount) {
+            return 'Rp ' + (amount || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        },
         addToCart() {
             @guest
                 window.location.href = '{{ route("login") }}';
                 return;
             @endguest
-            this.showSuccessModal = true;
+            if (!this.selectedFulfillment) {
+                this.fulfillmentError = true;
+                return;
+            }
+            this.actionType = 'cart';
+            this.showConfirmModal = true;
+        },
+        confirmAddToCart() {
+            this.cartCount = 1;
+            window.dispatchEvent(new CustomEvent('cart-updated', { detail: { count: 1 } }));
+            this.showConfirmModal = false;
+            this.showSuccessToast = true;
+            setTimeout(() => {
+                this.showSuccessToast = false;
+            }, 4500);
         },
         buyNow() {
             @guest
                 window.location.href = '{{ route("login") }}';
                 return;
             @endguest
-            alert('Mengalihkan ke halaman Checkout...');
+            if (!this.selectedFulfillment) {
+                this.fulfillmentError = true;
+                return;
+            }
+            this.actionType = 'buynow';
+            this.showConfirmModal = true;
         }
      }">
 
@@ -263,42 +294,70 @@
                 </div>
             </div>
 
-            <!-- FULFILLMENT METHOD -->
+            <!-- FULFILLMENT METHOD (MUST BE SELECTED) -->
             <div class="pt-4 border-t border-gray-100 space-y-3">
-                <h4 class="text-xs font-extrabold text-gray-800 uppercase tracking-wider">Fulfillment Method</h4>
+                <div class="flex items-center justify-between">
+                    <h4 class="text-xs font-extrabold text-gray-800 uppercase tracking-wider">
+                        Fulfillment Method <span class="text-rose-500">*</span>
+                    </h4>
+                    <span class="text-[10px] font-bold text-gray-400">Pilih salah satu</span>
+                </div>
+
+                <!-- ALERT ERROR IF NOT SELECTED -->
+                <div x-show="fulfillmentError" 
+                     x-transition 
+                     style="display: none;" 
+                     class="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold rounded-2xl flex items-center gap-2">
+                    <svg class="w-4 h-4 text-rose-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span>Silakan pilih metode pemenuhan (Pickup di Toko atau Delivery) terlebih dahulu!</span>
+                </div>
                 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <!-- OPTION 1: PICKUP -->
-                    <div class="p-3.5 bg-gray-50 rounded-2xl border border-gray-200/80 flex items-start gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-orange-100 text-[#F97316] flex items-center justify-center shrink-0 font-bold">
+                    <button type="button" 
+                            @click="selectFulfillment('pickup')"
+                            :class="selectedFulfillment === 'pickup' 
+                                ? 'border-[#F97316] bg-orange-50/60 ring-2 ring-[#F97316]/20 shadow-sm' 
+                                : 'border-gray-200/80 bg-gray-50 hover:bg-gray-100'"
+                            class="p-3.5 rounded-2xl border text-left flex items-start gap-3 transition-all cursor-pointer relative group">
+                        <div :class="selectedFulfillment === 'pickup' ? 'bg-[#F97316] text-white' : 'bg-orange-100 text-[#F97316]'"
+                             class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-bold transition-colors">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m0 0h4m-4 0v-4m0 4h4" />
                             </svg>
                         </div>
-                        <div>
+                        <div class="flex-grow">
                             <div class="flex items-center justify-between">
                                 <span class="font-extrabold text-xs text-[#111111]">Pickup di Toko</span>
                                 <span class="text-[10px] font-extrabold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Gratis</span>
                             </div>
                             <p class="text-[11px] text-gray-500 mt-0.5 leading-snug">Ambil pesanan langsung di cabang yang dipilih.</p>
                         </div>
-                    </div>
+                    </button>
 
                     <!-- OPTION 2: DELIVERY -->
-                    <div class="p-3.5 bg-gray-50 rounded-2xl border border-gray-200/80 flex items-start gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 font-bold">
+                    <button type="button" 
+                            @click="selectFulfillment('delivery')"
+                            :class="selectedFulfillment === 'delivery' 
+                                ? 'border-[#F97316] bg-orange-50/60 ring-2 ring-[#F97316]/20 shadow-sm' 
+                                : 'border-gray-200/80 bg-gray-50 hover:bg-gray-100'"
+                            class="p-3.5 rounded-2xl border text-left flex items-start gap-3 transition-all cursor-pointer relative group">
+                        <div :class="selectedFulfillment === 'delivery' ? 'bg-[#F97316] text-white' : 'bg-blue-100 text-blue-600'"
+                             class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-bold transition-colors">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8" />
                             </svg>
                         </div>
-                        <div>
+                        <div class="flex-grow">
                             <div class="flex items-center justify-between">
                                 <span class="font-extrabold text-xs text-[#111111]">Delivery</span>
                                 <span class="text-[10px] font-bold text-gray-500">Tarif Standar</span>
                             </div>
                             <p class="text-[11px] text-gray-500 mt-0.5 leading-snug">Kami antar pesanan langsung ke alamat Anda.</p>
                         </div>
-                    </div>
+                    </button>
                 </div>
             </div>
 
@@ -469,43 +528,122 @@
         </div>
     </div>
 
-    <!-- 7. ADD TO CART SUCCESS MODAL (<x-modal />) -->
-    <div x-show="showSuccessModal" 
-         x-cloak 
-         style="display: none;"
-         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-         x-transition:enter="transition ease-out duration-200"
-         x-transition:enter-start="opacity-0"
-         x-transition:enter-end="opacity-100"
-         x-transition:leave="transition ease-in duration-150"
-         x-transition:leave-start="opacity-100"
-         x-transition:leave-end="opacity-0">
-        
-        <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-gray-200 text-center space-y-5"
-             @click.away="showSuccessModal = false">
-            <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto font-bold border border-emerald-200">
-                <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-            </div>
+    <!-- 7. ITEM CHECKOUT / ADD TO CART CONFIRMATION MODAL -->
+    <template x-if="showConfirmModal">
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+             @click.self="showConfirmModal = false">
             
-            <div>
-                <h3 class="text-xl font-extrabold text-[#111111]">Berhasil Ditambahkan!</h3>
-                <p class="text-xs text-gray-500 mt-2 leading-relaxed">
-                    <strong class="text-gray-800" x-text="quantity"></strong> x <strong class="text-gray-800">{{ $product['name'] }}</strong> untuk cabang <strong class="text-[#F97316]" x-text="selectedBranchName"></strong> berhasil masuk ke keranjang belanja Anda.
-                </p>
-            </div>
+            <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-gray-200 space-y-6 text-left relative overflow-hidden">
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between border-b border-gray-100 pb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-2xl bg-orange-100 text-[#F97316] flex items-center justify-center font-bold">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-extrabold text-[#111111]" x-text="actionType === 'cart' ? 'Konfirmasi Tambah ke Keranjang' : 'Konfirmasi Beli Sekarang (Checkout)'"></h3>
+                            <p class="text-xs text-gray-500">Periksa rincian item pesanan Anda di bawah ini</p>
+                        </div>
+                    </div>
+                    <button type="button" @click="showConfirmModal = false" class="p-2 rounded-xl text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
 
-            <div class="grid grid-cols-2 gap-3 pt-2">
-                <button type="button" @click="showSuccessModal = false" class="py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-2xl text-xs font-bold transition-colors">
-                    Lanjut Belanja
-                </button>
-                <a href="{{ route('products.index') }}" class="py-3 bg-[#F97316] hover:bg-orange-600 text-white rounded-2xl text-xs font-extrabold shadow-md shadow-orange-500/20 flex items-center justify-center transition-all">
-                    Lihat Keranjang
-                </a>
+                <!-- Product Summary Card -->
+                <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <img :src="mainImage" alt="{{ $product['name'] }}" class="w-16 h-16 object-cover rounded-xl border border-gray-200 bg-white shrink-0">
+                    <div class="flex-grow min-w-0">
+                        <span class="text-[10px] font-extrabold text-[#F97316] uppercase tracking-wider">{{ $product['brand'] }}</span>
+                        <h4 class="font-extrabold text-sm text-gray-900 truncate">{{ $product['name'] }}</h4>
+                        <div class="text-xs text-gray-600 font-semibold mt-0.5">
+                            Harga Satuan: <strong class="text-gray-900">{{ 'Rp ' . number_format($product['price'] ?? 0, 0, ',', '.') }}</strong> / Sak
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Itemized Order Breakdown -->
+                <div class="space-y-3 bg-gray-50/50 p-4 rounded-2xl border border-gray-100 text-xs">
+                    <div class="flex justify-between items-center py-1 border-b border-gray-100">
+                        <span class="text-gray-500 font-medium">Cabang Pengambilan/Stok</span>
+                        <span class="font-extrabold text-gray-900 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            Cabang <span x-text="selectedBranchName"></span>
+                        </span>
+                    </div>
+
+                    <div class="flex justify-between items-center py-1 border-b border-gray-100">
+                        <span class="text-gray-500 font-medium">Metode Pemenuhan</span>
+                        <span class="font-extrabold text-gray-900 px-2.5 py-0.5 rounded-full bg-orange-50 text-[#F97316] border border-orange-200"
+                              x-text="selectedFulfillment === 'pickup' ? 'Pickup di Toko (Gratis)' : 'Delivery (Diantar ke Alamat)'"></span>
+                    </div>
+
+                    <div class="flex justify-between items-center py-1 border-b border-gray-100">
+                        <span class="text-gray-500 font-medium">Jumlah Pesanan</span>
+                        <span class="font-extrabold text-gray-900"><strong x-text="quantity" class="text-[#F97316]"></strong> Sak</span>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-2">
+                        <span class="text-sm font-extrabold text-gray-800">Total Harga Item</span>
+                        <span class="text-lg font-black text-[#F97316]" x-text="formatRupiah(unitPrice * quantity)"></span>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="grid grid-cols-2 gap-3 pt-2">
+                    <button type="button" 
+                            @click="showConfirmModal = false" 
+                            class="py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-2xl text-xs font-bold transition-colors text-center">
+                        Batal
+                    </button>
+
+                    <template x-if="actionType === 'cart'">
+                        <button type="button" 
+                                @click="confirmAddToCart()" 
+                                class="py-3 bg-[#F97316] hover:bg-orange-600 text-white rounded-2xl text-xs font-extrabold shadow-md shadow-orange-500/20 flex items-center justify-center transition-all">
+                            Lanjut Belanja
+                        </button>
+                    </template>
+
+                    <template x-if="actionType === 'buynow'">
+                        <a href="{{ route('products.index') }}" 
+                           class="py-3 bg-[#111111] hover:bg-black text-white rounded-2xl text-xs font-extrabold shadow-md flex items-center justify-center transition-all">
+                            Lanjut ke Checkout
+                        </a>
+                    </template>
+                </div>
             </div>
         </div>
-    </div>
+    </template>
+
+    <!-- 8. FLOATING SUCCESS TOAST NOTIFICATION ON TOP RIGHT -->
+    <template x-if="showSuccessToast">
+        <div class="fixed top-20 right-5 z-50 bg-[#171717] text-white p-4 rounded-2xl shadow-2xl border border-white/10 flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 max-w-sm">
+            <div class="w-10 h-10 rounded-xl bg-[#F97316] text-white flex items-center justify-center shrink-0 font-bold shadow-md shadow-orange-500/20">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+            </div>
+            <div class="flex-grow min-w-0">
+                <div class="flex items-center justify-between gap-2">
+                    <h4 class="font-extrabold text-xs text-white">Item Masuk Keranjang</h4>
+                    <span class="text-[9px] font-extrabold text-[#F97316] bg-orange-500/10 px-2 py-0.5 rounded-full border border-orange-500/20 shrink-0">1 Orderan</span>
+                </div>
+                <p class="text-[11px] text-gray-300 mt-0.5 truncate">
+                    <span x-text="quantity"></span> Sak {{ $product['name'] }} (Cabang <span x-text="selectedBranchName"></span>)
+                </p>
+            </div>
+            <button type="button" @click="showSuccessToast = false" class="text-gray-400 hover:text-white p-1">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    </template>
 
 </div>
 @endsection

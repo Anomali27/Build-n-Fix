@@ -26,7 +26,7 @@
     <div class="bg-white rounded-2xl border border-gray-200/80 p-4 mb-8 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
         <!-- Dynamic Result Count -->
         <div class="text-xs sm:text-sm text-gray-600 font-medium">
-            Menampilkan <span class="font-bold text-[#111111]">{{ $from }}–{{ $to }}</span> dari <span class="font-bold text-[#111111]">{{ $total }}</span> Produk
+[#111111]">{{ $from }}–{{ $to }}</span> dari <span class="font-bold text-[#111111]">{{ $total }}</span> Produk            Menampilkan <span class="font-bold text-
         </div>
 
         <!-- Sort and View Controls -->
