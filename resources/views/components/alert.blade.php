@@ -1,12 +1,33 @@
 @props([
-    'type' => 'error',
+    'type' => null,
     'title' => null,
     'message' => null,
     'dismissible' => true,
 ])
 
 @php
-    $styles = match($type) {
+    $flashType = $type;
+    $flashMessage = $message;
+
+    if (!$flashMessage && !$slot->isNotEmpty()) {
+        if (session('success')) {
+            $flashType = 'success';
+            $flashMessage = session('success');
+        } elseif (session('error')) {
+            $flashType = 'error';
+            $flashMessage = session('error');
+        } elseif (session('warning')) {
+            $flashType = 'warning';
+            $flashMessage = session('warning');
+        } elseif (session('info')) {
+            $flashType = 'info';
+            $flashMessage = session('info');
+        }
+    }
+
+    $flashType = $flashType ?? 'error';
+
+    $styles = match($flashType) {
         'success' => [
             'wrap'  => 'bg-emerald-50 border-emerald-200 text-emerald-900',
             'icon'  => 'text-emerald-600',
@@ -30,26 +51,27 @@
     };
 @endphp
 
+@if ($flashMessage || $slot->isNotEmpty())
 <div
     x-data="{ visible: true }"
     x-show="visible"
     x-transition:leave="transition ease-in duration-200"
     x-transition:leave-start="opacity-100"
     x-transition:leave-end="opacity-0"
-    {{ $attributes->merge(['class' => "flex items-start gap-3 p-3.5 rounded-lg border text-sm {$styles['wrap']}"]) }}
+    {{ $attributes->merge(['class' => "flex items-start gap-3 p-3.5 mb-6 rounded-2xl border text-sm shadow-sm {$styles['wrap']}"]) }}
 >
     {{-- Icon --}}
-    <svg class="w-4.5 h-4.5 mt-0.5 shrink-0 fill-current {{ $styles['icon'] }}" viewBox="0 0 20 20">
+    <svg class="w-5 h-5 mt-0.5 shrink-0 fill-current {{ $styles['icon'] }}" viewBox="0 0 20 20">
         {!! $styles['svg'] !!}
     </svg>
 
     {{-- Body --}}
-    <div class="flex-1 leading-relaxed">
+    <div class="flex-1 leading-relaxed font-semibold">
         @if ($title)
-            <p class="font-semibold mb-0.5">{{ $title }}</p>
+            <p class="font-extrabold mb-0.5">{{ $title }}</p>
         @endif
-        @if ($message)
-            <p>{{ $message }}</p>
+        @if ($flashMessage)
+            <p>{{ $flashMessage }}</p>
         @else
             {{ $slot }}
         @endif
@@ -58,10 +80,11 @@
     {{-- Dismiss --}}
     @if ($dismissible)
         <button type="button" @click="visible = false"
-            class="shrink-0 p-0.5 rounded hover:bg-black/10 transition-colors opacity-60 hover:opacity-100 focus:outline-none">
+            class="shrink-0 p-1 rounded-lg hover:bg-black/10 transition-colors opacity-60 hover:opacity-100 focus:outline-none">
             <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
             </svg>
         </button>
     @endif
 </div>
+@endif
