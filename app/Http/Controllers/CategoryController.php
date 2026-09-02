@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Services\CategoryService;
+use App\Services\ProductService;
 use Illuminate\Http\Request;
 
 class CategoryController extends Controller
 {
     public function __construct(
-        protected CategoryService $categoryService
+        protected CategoryService $categoryService,
+        protected ProductService $productService
     ) {}
 
     public function index(Request $request)
@@ -34,8 +36,35 @@ class CategoryController extends Controller
         ]));
     }
 
-    public function show($id)
+    public function show($category, Request $request)
     {
-        return redirect()->route('categories.index', ['category' => $id]);
+        $categoryData = $this->categoryService->getCategoryByIdOrSlug($category);
+
+        if (!$categoryData) {
+            return redirect()->route('categories.index')->with('error', 'Kategori tidak ditemukan.');
+        }
+
+        $sort = $request->get('sort', 'terpopuler');
+        $view = $request->get('view', 'grid');
+        $selectedBranches = (array) $request->get('branches', []);
+        $minPrice = $request->get('min_price');
+        $maxPrice = $request->get('max_price');
+
+        // Fetch products specifically belonging to this category
+        $productResult = $this->productService->getFilteredProducts([
+            'category' => $categoryData['id'],
+            'branches' => $selectedBranches,
+            'min_price' => $minPrice,
+            'max_price' => $maxPrice,
+        ], $sort);
+
+        return view('categories.show', array_merge($productResult, [
+            'category' => $categoryData,
+            'sort' => $sort,
+            'view' => $view,
+            'selectedBranches' => $selectedBranches,
+            'minPrice' => $minPrice,
+            'maxPrice' => $maxPrice,
+        ]));
     }
 }

@@ -12,6 +12,22 @@ class CategoryService
         return CategoryData::getAll();
     }
 
+    public function getCategoryByIdOrSlug(string|int $idOrSlug): ?array
+    {
+        $allCategories = CategoryData::getAll();
+        $target = strtolower((string) $idOrSlug);
+
+        foreach ($allCategories as $cat) {
+            if ((string) $cat['id'] === $target 
+                || strtolower($cat['slug'] ?? '') === $target 
+                || strtolower($cat['name']) === $target) {
+                return $cat;
+            }
+        }
+
+        return null;
+    }
+
     public function getFilteredCategories(array $filters = [], string $sort = 'terpopuler'): array
     {
         $allCategories = CategoryData::getAll();
