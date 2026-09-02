@@ -356,7 +356,7 @@
         </div>
 
         <!-- Tab 2: Spesifikasi (Responsive Grid) -->
-        <div x-show="activeTab === 'spec'" class="space-y-4" x-cloak>
+        <div x-show="activeTab === 'spec'" class="space-y-4" x-cloak style="display: none;">
             <h3 class="font-extrabold text-base text-[#111111] mb-4">Spesifikasi Teknis</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="flex items-center justify-between p-3.5 bg-gray-50 rounded-2xl border border-gray-100">
@@ -383,13 +383,13 @@
         </div>
 
         <!-- Tab 3: Informasi Tambahan -->
-        <div x-show="activeTab === 'info'" class="space-y-4 text-xs sm:text-sm text-gray-700 leading-relaxed" x-cloak>
+        <div x-show="activeTab === 'info'" class="space-y-4 text-xs sm:text-sm text-gray-700 leading-relaxed" x-cloak style="display: none;">
             <h3 class="font-extrabold text-base text-[#111111]">Informasi Tambahan & Penyimpanan</h3>
             <p>{{ $product['additional_info'] ?? 'Simpan produk semen di tempat yang tertutup dan kering. Jauhkan dari kontak langsung dengan lantai semen atau tanah dengan mengalasi menggunakan pallet kayu.' }}</p>
         </div>
 
         <!-- Tab 4: Pengiriman & Pengembalian -->
-        <div x-show="activeTab === 'shipping'" class="space-y-4 text-xs sm:text-sm text-gray-700 leading-relaxed" x-cloak>
+        <div x-show="activeTab === 'shipping'" class="space-y-4 text-xs sm:text-sm text-gray-700 leading-relaxed" x-cloak style="display: none;">
             <h3 class="font-extrabold text-base text-[#111111]">Ketentuan Pengiriman & Pickup</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="p-4 bg-orange-50/50 rounded-2xl border border-orange-100 space-y-2">
@@ -472,6 +472,7 @@
     <!-- 7. ADD TO CART SUCCESS MODAL (<x-modal />) -->
     <div x-show="showSuccessModal" 
          x-cloak 
+         style="display: none;"
          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
          x-transition:enter="transition ease-out duration-200"
          x-transition:enter-start="opacity-0"
