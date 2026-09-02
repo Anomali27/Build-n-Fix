@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Data\CategoryData;
-use App\Data\ProductData;
 use App\Services\ProductService;
 use Illuminate\Http\Request;
 
@@ -26,18 +25,18 @@ class ProductController extends Controller
 
         // Resolve Page Title
         $pageTitle = 'Semua Produk';
-        if ($selectedCategory !== 'all' && $selectedCategory !== 'semua' && !empty($selectedCategory)) {
+        if ($selectedCategory !== 'all' && $selectedCategory !== 'semua' && ! empty($selectedCategory)) {
             $categories = CategoryData::getAll();
             foreach ($categories as $cat) {
-                if ((string) $cat['id'] === (string) $selectedCategory 
+                if ((string) $cat['id'] === (string) $selectedCategory
                     || strtolower($cat['slug'] ?? '') === strtolower($selectedCategory)
                     || strtolower($cat['name']) === strtolower($selectedCategory)) {
                     $pageTitle = $cat['name'];
                     break;
                 }
             }
-        } elseif (!empty($search)) {
-            $pageTitle = 'Hasil Pencarian: "' . e($search) . '"';
+        } elseif (! empty($search)) {
+            $pageTitle = 'Hasil Pencarian: "'.e($search).'"';
         }
 
         $result = $this->productService->getFilteredProducts([
@@ -62,22 +61,23 @@ class ProductController extends Controller
         ]));
     }
 
-    public function show($id)
+    public function show($product)
     {
-        $allProducts = ProductData::getAll();
-        $product = null;
-        foreach ($allProducts as $p) {
-            if ((string) $p['id'] === (string) $id) {
-                $product = $p;
-                break;
-            }
-        }
+        $productData = $this->productService->getProductByIdOrSlug($product);
 
-        if (!$product) {
+        if (! $productData) {
             return redirect()->route('products.index')->with('error', 'Produk tidak ditemukan.');
         }
 
-        // For now, redirect or return view if detail exists
-        return redirect()->route('products.index', ['q' => $product['name']]);
+        $category = $this->productService->getProductCategory($productData['category_id']);
+        $branchStocks = $this->productService->getBranchStocksForProduct($productData['id']);
+        $relatedProducts = $this->productService->getRelatedProducts($productData['category_id'], $productData['id'], 5);
+
+        return view('products.show', [
+            'product' => $productData,
+            'category' => $category,
+            'branchStocks' => $branchStocks,
+            'relatedProducts' => $relatedProducts,
+        ]);
     }
 }

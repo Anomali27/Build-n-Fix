@@ -53,7 +53,7 @@ Route::prefix('categories')->name('categories.')->group(function () {
         ->name('destroy');
 });
 Route::get('/products', [ProductController::class, 'index'])->name('products.index');
-Route::get('/products/{id}', [ProductController::class, 'show'])->name('products.show');
+Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
 
 // ── Admin ─────────────────────────────────────────────
 Route::get('/admin/dashboard', function () {
