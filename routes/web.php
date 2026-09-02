@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\ProductController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -17,10 +20,6 @@ Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('regi
 Route::post('/register', [AuthController::class, 'register'])->name('register.store');
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-
-use App\Http\Controllers\CategoryController;
-use App\Http\Controllers\HomeController;
-use App\Http\Controllers\ProductController;
 
 // ── Customer ──────────────────────────────────────────
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -51,9 +50,13 @@ Route::prefix('categories')->name('categories.')->group(function () {
     Route::delete('/{category}', [CategoryController::class, 'destroy'])
         ->middleware('role:admin,owner')
         ->name('destroy');
+
+    // Product Detail under category: /categories/{category}/{product}
+    Route::get('/{category}/{product}', [ProductController::class, 'show'])
+        ->name('products.show');
 });
+
 Route::get('/products', [ProductController::class, 'index'])->name('products.index');
-Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
 
 // ── Admin ─────────────────────────────────────────────
 Route::get('/admin/dashboard', function () {

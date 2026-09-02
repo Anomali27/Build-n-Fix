@@ -29,12 +29,68 @@ class ProductService
             if ((string) $product['id'] === $strTarget || (string) ($product['sku'] ?? '') === $idOrSlug) {
                 return $product;
             }
+            if (isset($product['slug']) && strtolower($product['slug']) === $strTarget) {
+                return $product;
+            }
             if (strtolower(Str::slug($product['name'])) === $strTarget) {
                 return $product;
             }
         }
 
         return null;
+    }
+
+    public function getCategoryBySlugOrId($categorySlugOrId): ?array
+    {
+        $categories = CategoryData::getAll();
+        $target = strtolower((string) $categorySlugOrId);
+
+        foreach ($categories as $cat) {
+            if ((string) $cat['id'] === $target) {
+                return $cat;
+            }
+            if (isset($cat['slug']) && strtolower($cat['slug']) === $target) {
+                return $cat;
+            }
+            if (strtolower(Str::slug($cat['name'])) === $target) {
+                return $cat;
+            }
+        }
+
+        return null;
+    }
+
+    public function getProductDetail(string $categorySlug, string $productSlug): ?array
+    {
+        // 1. Find category
+        $category = $this->getCategoryBySlugOrId($categorySlug);
+        if (! $category) {
+            return null;
+        }
+
+        // 2. Find product
+        $product = $this->getProductByIdOrSlug($productSlug);
+        if (! $product) {
+            return null;
+        }
+
+        // 3. Validate product belongs to the requested category
+        if ((int) ($product['category_id'] ?? 0) !== (int) $category['id']) {
+            return null;
+        }
+
+        // 4. Get branch stocks
+        $branchStocks = $this->getBranchStocksForProduct($product['id']);
+
+        // 5. Get related products (same category only)
+        $relatedProducts = $this->getRelatedProducts($category['id'], $product['id'], 5);
+
+        return [
+            'product' => $product,
+            'category' => $category,
+            'branchStocks' => $branchStocks,
+            'relatedProducts' => $relatedProducts,
+        ];
     }
 
     public function getBranchStocksForProduct(int $productId): array

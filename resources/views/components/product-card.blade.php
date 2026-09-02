@@ -5,9 +5,11 @@
         ? (\Illuminate\Support\Str::startsWith($product['image'], ['http://', 'https://']) ? $product['image'] : asset($product['image']))
         : null;
 
-    $prodId = $product['id'] ?? 1;
-    $detailRoute = Route::has('products.show') 
-        ? route('products.show', $prodId) 
+    $catSlug = $product['category_slug'] ?? 'semen-mortar';
+    $prodSlug = $product['slug'] ?? \Illuminate\Support\Str::slug($product['name'] ?? 'product');
+
+    $detailRoute = Route::has('categories.products.show') 
+        ? route('categories.products.show', ['category' => $catSlug, 'product' => $prodSlug]) 
         : '#';
 
     // Determine stock status based on selected branch or general stock
@@ -15,7 +17,6 @@
     if (!empty($selectedBranch) && isset($product['stock_by_branch'][$selectedBranch])) {
         $stockStatus = $product['stock_by_branch'][$selectedBranch];
     } elseif (!empty($product['stock_by_branch'])) {
-        // Default to overall stock or first branch stock
         $statuses = array_values($product['stock_by_branch']);
         if (in_array('Tersedia', $statuses)) {
             $stockStatus = 'Tersedia';
@@ -47,8 +48,8 @@
             <div class="space-y-1">
                 <div class="flex items-center gap-2">
                     <span class="text-[11px] font-extrabold text-[#F97316] uppercase tracking-wider">{{ $product['brand'] ?? 'BUILD N FIX' }}</span>
-                    @if(isset($product['variant']) && $product['variant'])
-                        <span class="text-[11px] font-semibold text-gray-400">&bull; {{ $product['variant'] }}</span>
+                    @if(isset($product['size']) && $product['size'])
+                        <span class="text-[11px] font-semibold text-gray-400">&bull; {{ $product['size'] }}</span>
                     @endif
                 </div>
 
@@ -57,19 +58,7 @@
                 </a>
 
                 <div class="flex items-center gap-2 pt-1">
-                    @if($stockStatus === 'Tersedia')
-                        <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Tersedia
-                        </span>
-                    @elseif($stockStatus === 'Stok Terbatas')
-                        <span class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
-                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Stok Terbatas
-                        </span>
-                    @else
-                        <span class="inline-flex items-center gap-1 text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">
-                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Habis
-                        </span>
-                    @endif
+                    <x-status-badge :status="$stockStatus === 'Habis' ? 'out_of_stock' : ($stockStatus === 'Stok Terbatas' ? 'low_stock' : 'available')" />
                 </div>
             </div>
         </div>
@@ -79,18 +68,10 @@
                 Rp {{ number_format($product['price'] ?? 0, 0, ',', '.') }}
             </div>
 
-            <button type="button" 
-                    {{ $isOutOfStock ? 'disabled' : '' }}
-                    class="px-5 py-2.5 rounded-xl font-bold text-xs transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap {{ $isOutOfStock ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200' : 'bg-[#F97316] text-white hover:bg-orange-600 shadow-md shadow-orange-500/20 active:scale-95' }}">
-                @if($isOutOfStock)
-                    Stok Habis
-                @else
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    + Keranjang
-                @endif
-            </button>
+            <a href="{{ $detailRoute }}" 
+               class="px-5 py-2.5 rounded-xl font-bold text-xs transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap bg-[#F97316] text-white hover:bg-orange-600 shadow-md shadow-orange-500/20 active:scale-95">
+                Lihat Detail
+            </a>
         </div>
     </div>
 @else
@@ -111,19 +92,7 @@
 
             <!-- Stock Pill Overlay -->
             <div class="absolute top-3 left-3">
-                @if($stockStatus === 'Tersedia')
-                    <span class="inline-flex items-center gap-1 text-[10px] font-extrabold text-emerald-700 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-full shadow-sm border border-emerald-200">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Tersedia
-                    </span>
-                @elseif($stockStatus === 'Stok Terbatas')
-                    <span class="inline-flex items-center gap-1 text-[10px] font-extrabold text-amber-700 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-full shadow-sm border border-amber-200">
-                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Terbatas
-                    </span>
-                @else
-                    <span class="inline-flex items-center gap-1 text-[10px] font-extrabold text-rose-700 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-full shadow-sm border border-rose-200">
-                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Habis
-                    </span>
-                @endif
+                <x-status-badge :status="$stockStatus === 'Habis' ? 'out_of_stock' : ($stockStatus === 'Stok Terbatas' ? 'low_stock' : 'available')" />
             </div>
         </a>
 
@@ -132,8 +101,8 @@
             <div>
                 <div class="flex items-center justify-between text-[11px] font-bold text-gray-400 mb-1">
                     <span class="text-[#F97316] uppercase tracking-wider">{{ $product['brand'] ?? 'BUILD N FIX' }}</span>
-                    @if(isset($product['variant']) && $product['variant'])
-                        <span>{{ $product['variant'] }}</span>
+                    @if(isset($product['size']) && $product['size'])
+                        <span>{{ $product['size'] }}</span>
                     @endif
                 </div>
 
@@ -147,18 +116,10 @@
                     Rp {{ number_format($product['price'] ?? 0, 0, ',', '.') }}
                 </div>
 
-                <button type="button" 
-                        {{ $isOutOfStock ? 'disabled' : '' }}
-                        class="w-full py-2.5 rounded-xl font-bold text-xs transition-all duration-200 flex items-center justify-center gap-2 {{ $isOutOfStock ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200' : 'bg-[#F97316] text-white hover:bg-orange-600 shadow-md shadow-orange-500/20 active:scale-95' }}">
-                    @if($isOutOfStock)
-                        Stok Habis
-                    @else
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                        + Keranjang
-                    @endif
-                </button>
+                <a href="{{ $detailRoute }}" 
+                   class="w-full py-2.5 rounded-xl font-bold text-xs transition-all duration-200 flex items-center justify-center gap-2 bg-[#F97316] text-white hover:bg-orange-600 shadow-md shadow-orange-500/20 active:scale-95">
+                    Lihat Detail
+                </a>
             </div>
         </div>
     </div>

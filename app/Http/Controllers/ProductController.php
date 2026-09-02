@@ -61,23 +61,14 @@ class ProductController extends Controller
         ]));
     }
 
-    public function show($product)
+    public function show(string $category, string $product)
     {
-        $productData = $this->productService->getProductByIdOrSlug($product);
+        $data = $this->productService->getProductDetail($category, $product);
 
-        if (! $productData) {
-            return redirect()->route('products.index')->with('error', 'Produk tidak ditemukan.');
+        if (! $data) {
+            abort(404, 'Product not found');
         }
 
-        $category = $this->productService->getProductCategory($productData['category_id']);
-        $branchStocks = $this->productService->getBranchStocksForProduct($productData['id']);
-        $relatedProducts = $this->productService->getRelatedProducts($productData['category_id'], $productData['id'], 5);
-
-        return view('products.show', [
-            'product' => $productData,
-            'category' => $category,
-            'branchStocks' => $branchStocks,
-            'relatedProducts' => $relatedProducts,
-        ]);
+        return view('products.show', $data);
     }
 }
