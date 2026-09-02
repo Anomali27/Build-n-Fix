@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Data\OrderData;
+use Illuminate\Support\Facades\Session;
 
 class OrderService
 {
@@ -194,5 +195,72 @@ class OrderService
             'cancelled' => 'Dibatalkan',
             default => ucfirst(str_replace('_', ' ', $status)),
         };
+    }
+
+    /**
+     * Create an order from Checkout session after successful payment simulation.
+     *
+     * @param  array<string, mixed>  $checkoutData
+     * @return array<string, mixed>
+     */
+    public function createOrderFromCheckout(array $checkoutData, string $paymentReference, string $paymentMethod): array
+    {
+        $cart = $checkoutData['cart'];
+        $items = [];
+
+        foreach ($cart['items'] as $item) {
+            $items[] = [
+                'product_id' => $item['product_id'],
+                'sku' => $item['product']['sku'] ?? 'SKU-'.$item['product_id'],
+                'product_name' => $item['product']['name'] ?? 'Product Item',
+                'brand' => $item['product']['brand'] ?? 'Build n Fix',
+                'image' => $item['product']['image'] ?? '',
+                'quantity' => $item['quantity'],
+                'unit_price' => $item['unit_price'],
+                'subtotal' => $item['subtotal'],
+            ];
+        }
+
+        $userSession = Session::get('user', []);
+        $userId = (int) ($userSession['user_id'] ?? 1);
+
+        $fulfillmentMethod = strtolower($checkoutData['fulfillment_method'] ?? 'pickup');
+
+        // Order status rule:
+        // Pickup -> ready_to_pick_up
+        // Delivery -> proses
+        $orderStatus = $fulfillmentMethod === 'pickup' ? 'ready_to_pick_up' : 'proses';
+
+        $formattedAddress = null;
+        if ($fulfillmentMethod === 'delivery' && ! empty($checkoutData['delivery_address'])) {
+            $addr = $checkoutData['delivery_address'];
+            $formattedAddress = implode(', ', array_filter([
+                $addr['address'] ?? '',
+                $addr['city'] ?? '',
+                $addr['postal_code'] ?? '',
+            ]));
+        }
+
+        $orderPayload = [
+            'user_id' => $userId,
+            'branch_id' => $checkoutData['branch']['id'],
+            'branch_name' => $checkoutData['branch']['name'],
+            'branch_address' => 'Jl. '.$checkoutData['branch']['name'].' No. 88, Pontianak',
+            'fulfillment_method' => $fulfillmentMethod,
+            'payment_status' => 'paid',
+            'payment_method' => $paymentMethod,
+            'payment_reference' => $paymentReference,
+            'order_status' => $orderStatus,
+            'customer_name' => $checkoutData['customer']['name'],
+            'customer_email' => $checkoutData['customer']['email'],
+            'customer_phone' => $checkoutData['customer']['phone'],
+            'delivery_address' => $formattedAddress,
+            'subtotal' => $checkoutData['subtotal'],
+            'delivery_fee' => $checkoutData['delivery_fee'],
+            'total' => $checkoutData['total'],
+            'items' => $items,
+        ];
+
+        return OrderData::create($orderPayload);
     }
 }

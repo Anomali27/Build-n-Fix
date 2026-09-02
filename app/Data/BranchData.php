@@ -30,4 +30,27 @@ class BranchData
             ],
         ];
     }
+
+    public static function findById(int $id): ?array
+    {
+        foreach (self::getAll() as $branch) {
+            if ($branch['id'] === $id) {
+                return $branch;
+            }
+        }
+
+        return null;
+    }
+
+    public static function findByName(string $name): ?array
+    {
+        $cleanName = strtolower(trim(str_replace('cabang', '', strtolower($name))));
+        foreach (self::getAll() as $branch) {
+            if (strtolower($branch['name']) === $cleanName) {
+                return $branch;
+            }
+        }
+
+        return null;
+    }
 }

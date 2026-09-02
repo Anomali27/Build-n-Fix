@@ -52,6 +52,78 @@
         </a>
     </div>
 
+    <!-- PAYMENT SUCCESSFUL ALERT BANNER -->
+    @if(session('payment_success') || session('success'))
+        @php
+            $latestOrder = session('latest_order') ?? ($allOrders[0] ?? null);
+        @endphp
+        <div class="mb-8 bg-emerald-50 border border-emerald-200/80 rounded-3xl p-6 shadow-sm space-y-4 animate-in fade-in slide-in-from-top-3 duration-300">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-emerald-200/60 pb-4">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black text-xl shadow-md shadow-emerald-600/20 shrink-0">
+                        ✓
+                    </div>
+                    <div>
+                        <h2 class="text-base font-black text-emerald-950">Payment Successful! Order Placed Successfully</h2>
+                        <p class="text-xs text-emerald-700 font-medium mt-0.5">
+                            Thank you! Your simulated payment was processed and your order has been generated.
+                        </p>
+                    </div>
+                </div>
+
+                <span class="px-3 py-1 bg-emerald-600 text-white rounded-full text-xs font-black w-fit shrink-0">
+                    Payment Status: Paid
+                </span>
+            </div>
+
+            @if($latestOrder)
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-white/70 rounded-2xl p-4 border border-emerald-200/50">
+                    <div>
+                        <span class="text-gray-500 font-medium text-[10px] block uppercase tracking-wider">Order Number</span>
+                        <span class="font-extrabold text-gray-900 font-mono">{{ $latestOrder['order_number'] ?? 'BNF-20260902-001' }}</span>
+                    </div>
+
+                    <div>
+                        <span class="text-gray-500 font-medium text-[10px] block uppercase tracking-wider">Branch</span>
+                        <span class="font-bold text-gray-900">Cabang {{ $latestOrder['branch_name'] ?? 'Serdam' }}</span>
+                    </div>
+
+                    <div>
+                        <span class="text-gray-500 font-medium text-[10px] block uppercase tracking-wider">Fulfillment</span>
+                        <span class="font-extrabold text-[#F97316]">
+                            {{ strtolower($latestOrder['fulfillment_method'] ?? 'pickup') === 'pickup' ? 'Pickup di Toko' : 'Delivery' }}
+                        </span>
+                    </div>
+
+                    <div>
+                        <span class="text-gray-500 font-medium text-[10px] block uppercase tracking-wider">Total Payment</span>
+                        <span class="font-black text-[#F97316]">
+                            Rp {{ number_format($latestOrder['total'] ?? 0, 0, ',', '.') }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 pt-1 flex-wrap">
+                    <button type="button" 
+                            @click="openOrderModal('{{ $latestOrder['order_number'] }}')" 
+                            class="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-extrabold shadow-sm transition-all">
+                        View Order Details
+                    </button>
+
+                    <a href="{{ route('orders.index', ['tab' => 'tracking']) }}" 
+                       class="px-4 py-2.5 bg-white border border-emerald-300 text-emerald-900 hover:bg-emerald-100 rounded-xl text-xs font-bold transition-all">
+                        Track Order Status
+                    </a>
+
+                    <a href="{{ route('home') }}" 
+                       class="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl text-xs font-bold transition-all">
+                        Continue Shopping
+                    </a>
+                </div>
+            @endif
+        </div>
+    @endif
+
     <!-- 3. MAIN TABS NAVIGATION -->
     <div class="flex items-center gap-2 overflow-x-auto pb-3 mb-6 scrollbar-none border-b border-gray-100">
         <!-- Tab 1: Semua Pesanan -->

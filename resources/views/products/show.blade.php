@@ -13,6 +13,8 @@
         fulfillmentError: false,
         showConfirmModal: false,
         showSuccessToast: false,
+        showBranchMismatchModal: false,
+        mismatchData: {},
         cartCount: 0,
         actionType: 'cart',
         unitPrice: {{ $product['price'] ?? 0 }},
@@ -58,14 +60,77 @@
             this.actionType = 'cart';
             this.showConfirmModal = true;
         },
-        confirmAddToCart() {
-            this.cartCount = 1;
-            window.dispatchEvent(new CustomEvent('cart-updated', { detail: { count: 1 } }));
-            this.showConfirmModal = false;
-            this.showSuccessToast = true;
-            setTimeout(() => {
-                this.showSuccessToast = false;
-            }, 4500);
+        async confirmAddToCart() {
+            try {
+                const response = await fetch('{{ route("cart.store") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        product_id: {{ $product['id'] }},
+                        quantity: this.quantity,
+                        branch: this.selectedBranchId
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    this.showConfirmModal = false;
+                    this.showSuccessToast = true;
+                    this.cartCount = result.cart ? result.cart.item_count : 1;
+                    window.dispatchEvent(new CustomEvent('cart-updated', { detail: { count: this.cartCount } }));
+                    setTimeout(() => {
+                        this.showSuccessToast = false;
+                    }, 4500);
+                } else if (result.code === 'BRANCH_MISMATCH') {
+                    this.showConfirmModal = false;
+                    this.mismatchData = result;
+                    this.showBranchMismatchModal = true;
+                } else {
+                    alert(result.message || 'Error adding to cart.');
+                }
+            } catch (err) {
+                console.error(err);
+                if (this.$refs.addToCartForm) {
+                    this.$refs.addToCartForm.submit();
+                }
+            }
+        },
+        async forceAddToCart() {
+            try {
+                const response = await fetch('{{ route("cart.store") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        product_id: {{ $product['id'] }},
+                        quantity: this.quantity,
+                        branch: this.selectedBranchId,
+                        force: true
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    this.showBranchMismatchModal = false;
+                    this.showSuccessToast = true;
+                    this.cartCount = result.cart ? result.cart.item_count : 1;
+                    window.dispatchEvent(new CustomEvent('cart-updated', { detail: { count: this.cartCount } }));
+                    setTimeout(() => {
+                        this.showSuccessToast = false;
+                    }, 4500);
+                }
+            } catch (err) {
+                console.error(err);
+            }
         },
         buyNow() {
             @guest
@@ -78,6 +143,12 @@
             }
             this.actionType = 'buynow';
             this.showConfirmModal = true;
+        },
+        async confirmBuyNow() {
+            await this.confirmAddToCart();
+            if (!this.showBranchMismatchModal) {
+                window.location.href = '{{ route("cart.index") }}';
+            }
         }
      }">
 
@@ -610,10 +681,11 @@
                     </template>
 
                     <template x-if="actionType === 'buynow'">
-                        <a href="{{ route('products.index') }}" 
-                           class="py-3 bg-[#111111] hover:bg-black text-white rounded-2xl text-xs font-extrabold shadow-md flex items-center justify-center transition-all">
+                        <button type="button" 
+                                @click="confirmBuyNow()" 
+                                class="py-3 bg-[#111111] hover:bg-black text-white rounded-2xl text-xs font-extrabold shadow-md flex items-center justify-center transition-all">
                             Lanjut ke Checkout
-                        </a>
+                        </button>
                     </template>
                 </div>
             </div>
@@ -645,5 +717,38 @@
         </div>
     </template>
 
+    <!-- Hidden Form for Adding to Cart -->
+    <form x-ref="addToCartForm" method="POST" action="{{ route('cart.store') }}" class="hidden">
+        @csrf
+        <input type="hidden" name="product_id" value="{{ $product['id'] }}">
+        <input type="hidden" name="quantity" :value="quantity">
+        <input type="hidden" name="branch" :value="selectedBranchId">
+    </form>
+
+    <!-- Branch Mismatch Modal (AlpineJS & Session driven) -->
+    <div x-show="showBranchMismatchModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+        <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-gray-200 text-center space-y-4">
+            <div class="w-14 h-14 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto font-bold border border-amber-200">
+                🏪
+            </div>
+            
+            <div>
+                <h3 class="text-lg font-black text-[#111111]">Your cart contains products from another branch.</h3>
+                <p class="text-xs text-gray-600 mt-2 leading-relaxed font-medium">
+                    Your cart currently contains products from <strong x-text="'Cabang ' + (mismatchData.existing_branch_name || 'Serdam')"></strong>. You cannot add products from <strong x-text="'Cabang ' + (mismatchData.new_branch_name || 'Gajahmada')"></strong> to the same transaction.
+                </p>
+            </div>
+
+            <div class="space-y-2 pt-3 border-t border-gray-100">
+                <button type="button" @click="showBranchMismatchModal = false" class="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-2xl text-xs font-bold transition-colors">
+                    Continue with <span x-text="mismatchData.existing_branch_name || 'Serdam'"></span>
+                </button>
+                
+                <button type="button" @click="forceAddToCart()" class="w-full py-3 bg-[#F97316] hover:bg-orange-600 text-white rounded-2xl text-xs font-extrabold shadow-md shadow-orange-500/20 transition-all">
+                    Remove existing cart & add new item
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection

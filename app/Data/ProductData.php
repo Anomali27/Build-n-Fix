@@ -176,4 +176,25 @@ class ProductData
     {
         return array_slice(self::getAll(), 0, 4);
     }
+
+    public static function find(int|string $idOrSlug): ?array
+    {
+        foreach (self::getAll() as $product) {
+            if ((string) $product['id'] === (string) $idOrSlug || $product['slug'] === (string) $idOrSlug) {
+                return $product;
+            }
+        }
+
+        return null;
+    }
+
+    public static function findById(int $id): ?array
+    {
+        return self::find($id);
+    }
+
+    public static function findBySlug(string $slug): ?array
+    {
+        return self::find($slug);
+    }
 }

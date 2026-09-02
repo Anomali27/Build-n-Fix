@@ -45,6 +45,28 @@
 
         <!-- User Actions -->
         <div class="flex items-center gap-3">
+            @php
+                $headerCart = app(\App\Services\CartService::class)->getCart();
+                $headerCartCount = $headerCart['item_count'] ?? 0;
+            @endphp
+
+            <!-- Cart Icon with Dynamic Badge Notification -->
+            <a href="{{ route('cart.index') }}" 
+               x-data="{ cartBadge: {{ $headerCartCount }} }" 
+               x-on:cart-updated.window="cartBadge = $event.detail.count || 1"
+               title="Shopping Cart ({{ $headerCartCount }} items)" 
+               class="p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition-colors relative group">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <!-- Badge when item is added to cart -->
+                @if($headerCartCount > 0)
+                    <span class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#F97316] text-white font-extrabold text-[10px] flex items-center justify-center ring-2 ring-[#171717] shadow-md">
+                        {{ $headerCartCount }}
+                    </span>
+                @endif
+            </a>
+
             @auth
                 <!-- Order Icon -->
                 <a href="{{ Route::has('orders.index') ? route('orders.index') : '#' }}" title="Pesanan Saya" class="p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition-colors hidden sm:flex">
@@ -52,23 +74,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                     </svg>
                 </a>
-                <!-- Cart Icon with Dynamic Badge Notification -->
-                <a href="{{ Route::has('cart.index') ? route('cart.index') : '#' }}" 
-                   x-data="{ cartBadge: 0 }" 
-                   x-on:cart-updated.window="cartBadge = $event.detail.count || 1"
-                   title="Keranjang Belanja (1 Orderan)" 
-                   class="p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition-colors relative group">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    <!-- Small Orange Dot by default when idle -->
-                    <span x-show="cartBadge === 0" class="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#F97316] ring-2 ring-[#171717]"></span>
-                    <!-- Number Badge when item is added to cart -->
-                    <template x-if="cartBadge > 0">
-                        <span class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#F97316] text-white font-extrabold text-[10px] flex items-center justify-center ring-2 ring-[#171717] shadow-md animate-bounce"
-                              x-text="cartBadge"></span>
-                    </template>
-                </a>
+
                 <!-- Profile Avatar Icon -->
                 <a href="#" title="Profil Pelanggan" class="p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition-colors">
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

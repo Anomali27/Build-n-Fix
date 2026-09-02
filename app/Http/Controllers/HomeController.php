@@ -6,7 +6,6 @@ use App\Services\BranchService;
 use App\Services\CategoryService;
 use App\Services\ProductService;
 use App\Services\ReviewService;
-use Illuminate\Http\Request;
 
 class HomeController extends Controller
 {

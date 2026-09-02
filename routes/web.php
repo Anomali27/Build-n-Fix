@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CartController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
@@ -66,6 +68,23 @@ Route::prefix('orders')->name('orders.')->group(function () {
 
     Route::get('/{order}', [OrderController::class, 'show'])
         ->name('show');
+});
+
+// ── Cart ───────────────────────────────────────────────
+Route::prefix('cart')->name('cart.')->group(function () {
+    Route::get('/', [CartController::class, 'index'])->name('index');
+    Route::post('/', [CartController::class, 'store'])->name('store');
+    Route::patch('/{product}', [CartController::class, 'update'])->name('update');
+    Route::delete('/{product}', [CartController::class, 'destroy'])->name('destroy');
+    Route::delete('/', [CartController::class, 'clear'])->name('clear');
+});
+
+// ── Checkout ───────────────────────────────────────────
+Route::prefix('checkout')->name('checkout.')->group(function () {
+    Route::get('/', [CheckoutController::class, 'index'])->name('index');
+    Route::post('/', [CheckoutController::class, 'store'])->name('store');
+    Route::get('/payment', [CheckoutController::class, 'payment'])->name('payment');
+    Route::post('/payment', [CheckoutController::class, 'processPayment'])->name('process-payment');
 });
 
 // ── Admin ─────────────────────────────────────────────
