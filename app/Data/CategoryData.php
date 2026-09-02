@@ -66,7 +66,7 @@ class CategoryData
                 'id' => 6,
                 'slug' => 'atap',
                 'name' => 'Atap',
-                'description: 'Atap spandek, genteng metal, polycarbonate, dan aksesoris atap anti bocor untuk perlindungan hunian Anda.',
+                'description' => 'Atap spandek, genteng metal, polycarbonate, dan aksesoris atap anti bocor untuk perlindungan hunian Anda.',
                 'count' => 6,
                 'count_label' => '6 Categories',
                 'image' => 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&auto=format&fit=crop&q=80',
