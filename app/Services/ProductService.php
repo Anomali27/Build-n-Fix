@@ -13,6 +13,11 @@ class ProductService
         return ProductData::getAll();
     }
 
+    public function getFeaturedProducts(int $limit = 4): array
+    {
+        return ProductData::getFeatured();
+    }
+
     public function getFilteredProducts(array $filters = [], string $sort = 'terpopuler'): array
     {
         $allProducts = ProductData::getAll();
