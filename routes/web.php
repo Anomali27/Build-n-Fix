@@ -22,6 +22,8 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('/', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 Route::get('/categories', [App\Http\Controllers\CategoryController::class, 'index'])->name('categories.index');
 Route::get('/categories/{id}', [App\Http\Controllers\CategoryController::class, 'show'])->name('categories.show');
+Route::get('/products', [App\Http\Controllers\ProductController::class, 'index'])->name('products.index');
+Route::get('/products/{id}', [App\Http\Controllers\ProductController::class, 'show'])->name('products.show');
 
 // ── Admin ─────────────────────────────────────────────
 Route::get('/admin/dashboard', function () {
