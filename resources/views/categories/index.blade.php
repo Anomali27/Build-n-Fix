@@ -11,29 +11,48 @@
     </nav>
 
     <!-- 2. PAGE HEADER -->
-    <div class="mb-8">
-        <h1 class="text-3xl md:text-4xl font-extrabold text-[#111111] tracking-tight">All Categories</h1>
-        <p class="text-gray-600 text-sm md:text-base mt-2 font-normal">
-            Temukan lebih banyak kategori bahan bangunan yang tersedia di Build n Fix.
-        </p>
+    <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-3xl md:text-4xl font-extrabold text-[#111111] tracking-tight">
+                All Categories
+            </h1>
+            <p class="text-gray-600 text-sm md:text-base mt-2 font-normal">
+                Temukan lebih banyak kategori bahan bangunan yang tersedia di Build n Fix.
+            </p>
+        </div>
+
+        @auth
+            @if(in_array(session('user.role'), ['admin', 'owner']))
+                <a href="{{ route('categories.create') }}" class="inline-flex items-center gap-2 px-5 py-3 bg-[#F97316] hover:bg-orange-600 text-white rounded-2xl font-extrabold text-xs shadow-md shadow-orange-500/20 active:scale-95 transition-all whitespace-nowrap self-start md:self-auto">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    + Tambah Kategori Baru
+                </a>
+            @endif
+        @endauth
     </div>
 
-    <!-- 3. RESULT AND SORT BAR -->
+    <!-- 3. FEEDBACK ALERT -->
+    <x-alert />
+
+    <!-- 4. RESULT AND SORT BAR -->
     <div class="bg-white rounded-2xl border border-gray-200/80 p-4 mb-8 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
-        <!-- Count info -->
         <div class="text-xs sm:text-sm text-gray-600 font-medium">
             Menampilkan <span class="font-bold text-[#111111]">{{ $from }}–{{ $to }}</span> dari <span class="font-bold text-[#111111]">{{ $total }}</span> Kategori
         </div>
 
-        <!-- Filter / Sort / View Controls -->
         <div class="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
-            <!-- Sort Dropdown Form -->
+            <!-- Sort Form -->
             <form method="GET" action="{{ route('categories.index') }}" class="flex items-center gap-2" id="sortForm">
                 @if(request('category'))
                     <input type="hidden" name="category" value="{{ request('category') }}">
                 @endif
-                @foreach((array) request('branches') as $b)
-                    <input type="hidden" name="branches[]" value="{{ $b }}">
+                @if(request('location'))
+                    <input type="hidden" name="location" value="{{ request('location') }}">
+                @endif
+                @foreach((array) request('branches') as $br)
+                    <input type="hidden" name="branches[]" value="{{ $br }}">
                 @endforeach
                 @if(request('q'))
                     <input type="hidden" name="q" value="{{ request('q') }}">
@@ -70,10 +89,10 @@
         </div>
     </div>
 
-    <!-- 4. MAIN CONTENT TWO-COLUMN LAYOUT -->
+    <!-- 5. MAIN CONTENT LAYOUT -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
-        <!-- LEFT SIDEBAR -->
+        <!-- SIDEBAR FILTERS -->
         <aside class="lg:col-span-3 space-y-6">
             <form method="GET" action="{{ route('categories.index') }}" id="filterForm">
                 <input type="hidden" name="sort" value="{{ $sort }}">
@@ -82,17 +101,9 @@
                     <input type="hidden" name="q" value="{{ request('q') }}">
                 @endif
 
-                <!-- CATEGORY FILTER CARD -->
-                <div class="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-sm space-y-4">
-                    <h3 class="font-extrabold text-base text-[#111111] pb-3 border-b border-gray-100 flex items-center justify-between">
-                        <span>Category</span>
-                        @if($selectedCategory !== 'all' || !empty($selectedBranches))
-                            <a href="{{ route('categories.index') }}" class="text-[11px] text-[#F97316] font-semibold hover:underline">Reset</a>
-                        @endif
-                    </h3>
-
-                    <div class="space-y-1 max-h-[380px] overflow-y-auto pr-1">
-                        <!-- All Categories Option -->
+                <!-- SECTION 1: CATEGORY FILTER -->
+                <x-filter-section title="Category" :resetUrl="route('categories.index')">
+                    <div class="space-y-1 max-h-[360px] overflow-y-auto pr-1">
                         @php
                             $isAllActive = strtolower($selectedCategory) === 'all' || strtolower($selectedCategory) === 'semua' || empty($selectedCategory);
                         @endphp
@@ -100,11 +111,10 @@
                            class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all {{ $isAllActive ? 'bg-[#F97316] text-white shadow-md shadow-orange-500/20' : 'text-gray-700 hover:bg-gray-100' }}">
                             <span>Semua kategori</span>
                             <span class="px-2 py-0.5 rounded-full text-[10px] {{ $isAllActive ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500' }}">
-                                {{ array_sum(array_column($sidebarCategories, 'count')) }}
+                                {{ count($sidebarCategories) }}
                             </span>
                         </a>
 
-                        <!-- Categories List -->
                         @foreach($sidebarCategories as $catItem)
                             @php
                                 $isActive = (string) $selectedCategory === (string) $catItem['id'] 
@@ -120,9 +130,9 @@
                             </a>
                         @endforeach
                     </div>
-                </div>
+                </x-filter-section>
 
-                <!-- BRANCH AVAILABILITY FILTER CARD -->
+                <!-- SECTION 2: BRANCH LOCATION FILTER -->
                 <div class="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-sm space-y-4 mt-6">
                     <h3 class="font-extrabold text-base text-[#111111] pb-3 border-b border-gray-100">
                         Tersedia di lokasi
@@ -131,31 +141,43 @@
                     <div class="space-y-3">
                         @foreach($sidebarBranches as $branch)
                             @php
-                                $isChecked = in_array($branch['name'], (array) $selectedBranches);
+                                $isBranchChecked = in_array($branch['name'], (array) $selectedBranches) || strtolower($location) === strtolower($branch['name']);
                             @endphp
                             <label class="flex items-center justify-between text-xs text-gray-700 font-medium cursor-pointer hover:text-gray-900 group">
                                 <div class="flex items-center gap-2.5">
                                     <input type="checkbox" 
                                            name="branches[]" 
                                            value="{{ $branch['name'] }}" 
-                                           {{ $isChecked ? 'checked' : '' }}
+                                           {{ $isBranchChecked ? 'checked' : '' }}
                                            onchange="document.getElementById('filterForm').submit()"
                                            class="w-4 h-4 text-[#F97316] rounded border-gray-300 focus:ring-[#F97316]">
-                                    <span class="{{ $isChecked ? 'font-bold text-[#111111]' : '' }}">{{ $branch['name'] }}</span>
+                                    <span class="{{ $isBranchChecked ? 'font-bold text-[#111111]' : '' }}">{{ $branch['name'] }}</span>
                                 </div>
                                 <span class="text-[10px] text-gray-400 font-medium">({{ $branch['count'] }})</span>
                             </label>
                         @endforeach
                     </div>
                 </div>
+
+                <!-- RESET BUTTON -->
+                <div class="pt-2">
+                    <a href="{{ route('categories.index') }}" 
+                       class="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-colors">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Reset Filter
+                    </a>
+                </div>
+
             </form>
         </aside>
 
-        <!-- RIGHT CATEGORY GRID RESULTS -->
+        <!-- CATEGORIES GRID / LIST -->
         <main class="lg:col-span-9">
             @forelse($categories as $category)
                 @if($loop->first)
-                    <div class="{{ $view === 'list' ? 'space-y-4' : 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5' }}">
+                    <div class="{{ $view === 'list' ? 'space-y-4' : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5' }}">
                 @endif
                 
                 <x-category-card :category="$category" :view="$view" />
@@ -165,54 +187,13 @@
                 @endif
             @empty
                 <x-empty-state 
-                    title="Tidak ada kategori ditemukan" 
-                    message="Tidak ada kategori bahan bangunan yang cocok dengan filter atau kata kunci yang Anda pilih."
+                    title="Kategori Tidak Ditemukan" 
+                    message="Coba ubah kata kunci atau filter lokasi cabang untuk melihat kategori bahan bangunan lainnya."
                     :resetUrl="route('categories.index')"
                 />
             @endforelse
         </main>
 
-    </div>
-
-    <!-- 5. BOTTOM BENEFITS SECTION -->
-    <div class="mt-20 pt-12 border-t border-gray-200/80">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div class="flex items-start gap-4 p-4 rounded-2xl bg-white border border-gray-100 shadow-sm">
-                <div class="w-12 h-12 rounded-xl bg-orange-50 text-[#F97316] flex items-center justify-center flex-shrink-0 font-bold border border-orange-100">
-                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </div>
-                <div>
-                    <h4 class="font-extrabold text-[#111111] text-base mb-1">Stok Real-time</h4>
-                    <p class="text-xs text-gray-500 leading-relaxed">Cek ketersediaan barang sebelum datang ke toko</p>
-                </div>
-            </div>
-
-            <div class="flex items-start gap-4 p-4 rounded-2xl bg-white border border-gray-100 shadow-sm">
-                <div class="w-12 h-12 rounded-xl bg-orange-50 text-[#F97316] flex items-center justify-center flex-shrink-0 font-bold border border-orange-100">
-                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                    </svg>
-                </div>
-                <div>
-                    <h4 class="font-extrabold text-[#111111] text-base mb-1">pick up atau Delivery</h4>
-                    <p class="text-xs text-gray-500 leading-relaxed">Ambil sendiri Gratis atau kirim ke lokasi anda</p>
-                </div>
-            </div>
-
-            <div class="flex items-start gap-4 p-4 rounded-2xl bg-white border border-gray-100 shadow-sm">
-                <div class="w-12 h-12 rounded-xl bg-orange-50 text-[#F97316] flex items-center justify-center flex-shrink-0 font-bold border border-orange-100">
-                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                </div>
-                <div>
-                    <h4 class="font-extrabold text-[#111111] text-base mb-1">Transaksi Aman</h4>
-                    <p class="text-xs text-gray-500 leading-relaxed">Pembayaran aman melalui payment gateway</p>
-                </div>
-            </div>
-        </div>
     </div>
 
 </div>

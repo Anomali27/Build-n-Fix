@@ -18,12 +18,42 @@ Route::post('/register', [AuthController::class, 'register'])->name('register.st
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\ProductController;
+
 // ── Customer ──────────────────────────────────────────
-Route::get('/', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
-Route::get('/categories', [App\Http\Controllers\CategoryController::class, 'index'])->name('categories.index');
-Route::get('/categories/{id}', [App\Http\Controllers\CategoryController::class, 'show'])->name('categories.show');
-Route::get('/products', [App\Http\Controllers\ProductController::class, 'index'])->name('products.index');
-Route::get('/products/{id}', [App\Http\Controllers\ProductController::class, 'show'])->name('products.show');
+Route::get('/', [HomeController::class, 'index'])->name('home');
+
+Route::prefix('categories')->name('categories.')->group(function () {
+    Route::get('/', [CategoryController::class, 'index'])
+        ->name('index');
+
+    Route::get('/create', [CategoryController::class, 'create'])
+        ->middleware('role:admin,owner')
+        ->name('create');
+
+    Route::post('/', [CategoryController::class, 'store'])
+        ->middleware('role:admin,owner')
+        ->name('store');
+
+    Route::get('/{category}', [CategoryController::class, 'show'])
+        ->name('show');
+
+    Route::get('/{category}/edit', [CategoryController::class, 'edit'])
+        ->middleware('role:admin,owner')
+        ->name('edit');
+
+    Route::put('/{category}', [CategoryController::class, 'update'])
+        ->middleware('role:admin,owner')
+        ->name('update');
+
+    Route::delete('/{category}', [CategoryController::class, 'destroy'])
+        ->middleware('role:admin,owner')
+        ->name('destroy');
+});
+Route::get('/products', [ProductController::class, 'index'])->name('products.index');
+Route::get('/products/{id}', [ProductController::class, 'show'])->name('products.show');
 
 // ── Admin ─────────────────────────────────────────────
 Route::get('/admin/dashboard', function () {
