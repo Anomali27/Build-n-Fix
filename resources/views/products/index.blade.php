@@ -106,9 +106,6 @@
                         <a href="{{ route('products.index', array_merge(request()->except('category'), ['category' => 'all'])) }}" 
                            class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all {{ $isAllCategoryActive ? 'bg-[#F97316] text-white shadow-md shadow-orange-500/20' : 'text-gray-700 hover:bg-gray-100' }}">
                             <span>Semua kategori</span>
-                            <span class="px-2 py-0.5 rounded-full text-[10px] {{ $isAllCategoryActive ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500' }}">
-                                {{ array_sum(array_column($sidebarCategories, 'count')) }}
-                            </span>
                         </a>
 
                         @foreach($sidebarCategories as $catItem)
@@ -120,9 +117,6 @@
                             <a href="{{ route('products.index', array_merge(request()->query(), ['category' => $catItem['id']])) }}" 
                                class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all {{ $isActive ? 'bg-orange-50 text-[#F97316] font-bold border-l-4 border-[#F97316]' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
                                 <span>{{ $catItem['name'] }}</span>
-                                <span class="text-[10px] px-2 py-0.5 rounded-full {{ $isActive ? 'bg-orange-100 text-[#F97316]' : 'bg-gray-100 text-gray-400' }}">
-                                    {{ $catItem['count'] }}
-                                </span>
                             </a>
                         @endforeach
                     </div>

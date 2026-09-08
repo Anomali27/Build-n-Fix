@@ -24,12 +24,7 @@
         @endif
 
         <div class="relative z-10 max-w-2xl">
-            <div class="flex items-center gap-3 mb-3">
-                <span class="px-3 py-1 bg-[#F97316] text-white font-extrabold text-[10px] uppercase tracking-wider rounded-full shadow-md">
-                    Kategori Bahan Bangunan
-                </span>
-                <x-status-badge :status="$category['status'] ?? 'active'" />
-                
+            <div class="flex items-center gap-3 mb-3">         
                 @auth
                     @if(in_array(session('user.role'), ['admin', 'owner']))
                         <a href="{{ route('categories.edit', $category['slug'] ?? $category['id']) }}" class="px-3 py-1 bg-white/20 hover:bg-white/30 text-white font-bold text-[10px] rounded-full backdrop-blur-md transition-colors flex items-center gap-1">
@@ -52,16 +47,10 @@
 
             <div class="flex flex-wrap items-center gap-4 text-xs font-semibold text-gray-300">
                 <div class="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-xl">
-                    <svg class="w-4 h-4 text-[#F97316]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                    </svg>
-                    <span>Total <strong class="text-white font-bold">{{ $total }}</strong> Produk</span>
+                    <span> Total <strong class="text-white font-bold">{{ $total }}</strong> Produk</span>
                 </div>
 
                 <div class="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-xl">
-                    <svg class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    </svg>
                     <span>Tersedia: <strong class="text-white font-bold">{{ implode(', ', $category['branches'] ?? ['Serdam', 'Gajahmada', 'Kota Baru']) }}</strong></span>
                 </div>
             </div>

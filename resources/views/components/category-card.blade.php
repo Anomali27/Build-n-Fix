@@ -11,7 +11,7 @@
         : '#';
     
     $countText = isset($category['count_label']) 
-        ? $category['count_label'] 
+        ? str_replace(['Categories', 'categories'], 'Produk', $category['count_label']) 
         : (($category['count'] ?? 0) . ' Produk');
     $status = $category['status'] ?? 'active';
 @endphp

@@ -60,7 +60,6 @@
                 <label for="sortSelect" class="text-xs font-bold text-gray-500 whitespace-nowrap">Sort by:</label>
                 <select name="sort" id="sortSelect" onchange="document.getElementById('sortForm').submit()" 
                         class="bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-xs font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#F97316]/50 cursor-pointer">
-                    <option value="terpopuler" {{ $sort === 'terpopuler' ? 'selected' : '' }}>Terpopuler</option>
                     <option value="a-z" {{ $sort === 'a-z' ? 'selected' : '' }}>A-Z</option>
                     <option value="z-a" {{ $sort === 'z-a' ? 'selected' : '' }}>Z-A</option>
                     <option value="jumlah-produk" {{ $sort === 'jumlah-produk' ? 'selected' : '' }}>Jumlah Produk</option>
@@ -108,9 +107,6 @@
                         <a href="{{ route('categories.index', array_merge(request()->except('category'), ['category' => 'all'])) }}" 
                            class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all {{ $isAllActive ? 'bg-[#F97316] text-white shadow-md shadow-orange-500/20' : 'text-gray-700 hover:bg-gray-100' }}">
                             <span>Semua kategori</span>
-                            <span class="px-2 py-0.5 rounded-full text-[10px] {{ $isAllActive ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500' }}">
-                                {{ count($sidebarCategories) }}
-                            </span>
                         </a>
 
                         @foreach($sidebarCategories as $catItem)
@@ -122,9 +118,6 @@
                             <a href="{{ route('categories.index', array_merge(request()->query(), ['category' => $catItem['id']])) }}" 
                                class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all {{ $isActive ? 'bg-orange-50 text-[#F97316] font-bold border-l-4 border-[#F97316]' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
                                 <span>{{ $catItem['name'] }}</span>
-                                <span class="text-[10px] px-2 py-0.5 rounded-full {{ $isActive ? 'bg-orange-100 text-[#F97316]' : 'bg-gray-100 text-gray-400' }}">
-                                    {{ $catItem['count'] }}
-                                </span>
                             </a>
                         @endforeach
                     </div>

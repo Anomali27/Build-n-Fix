@@ -184,14 +184,14 @@
                 </span>
             </div>
 
-            <!-- Thumbnail Selector (4 Thumbnails) -->
+            <!-- Thumbnail Selector (Exactly 3 Thumbnails) -->
             @php
                 $galleryImages = !empty($product['gallery']) && is_array($product['gallery']) 
                     ? $product['gallery'] 
-                    : array_fill(0, 4, $product['image']);
+                    : array_fill(0, 3, $product['image']);
             @endphp
-            <div class="grid grid-cols-4 gap-3">
-                @foreach(array_slice($galleryImages, 0, 4) as $index => $img)
+            <div class="grid grid-cols-3 gap-3">
+                @foreach(array_slice($galleryImages, 0, 3) as $index => $img)
                     @php
                         $fullImgUrl = \Illuminate\Support\Str::startsWith($img, ['http://', 'https://']) ? $img : asset($img);
                     @endphp
@@ -208,7 +208,7 @@
         <!-- RIGHT COLUMN: PRODUCT INFORMATION -->
         <div class="lg:col-span-6 space-y-6">
             
-            <!-- Category & Brand Badge -->
+            <!-- 1. Category & Brand -->
             <div class="flex items-center gap-2">
                 <a href="{{ route('categories.show', $category['slug'] ?? 'semen-mortar') }}" class="px-3 py-1 bg-orange-50 text-[#F97316] font-extrabold text-[10px] uppercase tracking-wider rounded-full border border-orange-100 hover:bg-orange-100 transition-colors">
                     {{ $category['name'] ?? 'Semen & Mortar' }}
@@ -217,16 +217,16 @@
                 <span class="text-xs font-bold text-gray-500">Brand: <strong class="text-gray-800">{{ $product['brand'] }}</strong></span>
             </div>
 
-            <!-- Product Title -->
-            <div>
-                <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#111111] tracking-tight leading-tight">
-                    {{ $product['name'] }}
-                </h1>
-                <p class="text-xs text-gray-400 font-semibold mt-1">SKU: <span class="text-gray-600 font-mono">{{ $product['sku'] }}</span></p>
-            </div>
+            <!-- 2. Nama produk bold dan besar -->
+            <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#111111] tracking-tight leading-tight">
+                {{ $product['name'] }}
+            </h1>
 
-            <!-- Price Display (Format Rupiah in #F97316) -->
-            <div class="py-3 px-5 bg-orange-50/50 rounded-2xl border border-orange-100/80 inline-block w-full">
+            <!-- 3. SKU -->
+            <p class="text-xs text-gray-400 font-semibold -mt-2">SKU: <span class="text-gray-600 font-mono">{{ $product['sku'] }}</span></p>
+
+            <!-- 4. Harga produk -->
+            <div class="py-3.5 px-5 bg-orange-50/50 rounded-2xl border border-orange-100/80 inline-block w-full">
                 <div class="text-xs text-gray-500 font-bold uppercase tracking-wider mb-0.5">Harga Produk</div>
                 <div class="text-3xl sm:text-4xl font-black text-[#F97316]">
                     Rp {{ number_format($product['price'], 0, ',', '.') }}
@@ -234,13 +234,13 @@
                 </div>
             </div>
 
-            <!-- Short Description -->
+            <!-- 5. Deskripsi kecil -->
             <p class="text-xs sm:text-sm text-gray-600 leading-relaxed">
                 {{ $product['short_description'] ?? 'Produk semen dan mortar pilihan dengan ketahanan tinggi untuk pasangan bata, plesteran, dan pengecoran bangunan.' }}
             </p>
 
-            <!-- Specification Summary Cards -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+            <!-- 6. Size dan unit serta ketersediaan -->
+            <div class="grid grid-cols-3 gap-3 pt-1">
                 <div class="p-3 bg-gray-50 rounded-xl border border-gray-200/70 text-center">
                     <span class="block text-[10px] text-gray-400 font-bold uppercase">Size</span>
                     <span class="text-xs font-extrabold text-gray-800">{{ $product['size'] }}</span>
@@ -250,22 +250,18 @@
                     <span class="text-xs font-extrabold text-gray-800">{{ $product['unit'] }}</span>
                 </div>
                 <div class="p-3 bg-gray-50 rounded-xl border border-gray-200/70 text-center">
-                    <span class="block text-[10px] text-gray-400 font-bold uppercase">Kategori</span>
-                    <span class="text-xs font-extrabold text-gray-800 truncate block">{{ $category['name'] ?? 'Semen' }}</span>
-                </div>
-                <div class="p-3 bg-gray-50 rounded-xl border border-gray-200/70 text-center">
-                    <span class="block text-[10px] text-gray-400 font-bold uppercase">Status</span>
-                    <span class="text-xs font-extrabold text-emerald-600">Aktif</span>
+                    <span class="block text-[10px] text-gray-400 font-bold uppercase">Ketersediaan</span>
+                    <span class="text-xs font-extrabold text-emerald-600" x-text="selectedBranchStock > 0 ? 'Tersedia' : 'Stok Habis'">Tersedia</span>
                 </div>
             </div>
 
             <hr class="border-gray-100">
 
-            <!-- BRANCH STOCK SECTION -->
+            <!-- 7. Stok setiap cabang -->
             <div class="space-y-3">
                 <div class="flex items-center justify-between">
                     <h3 class="text-xs font-extrabold text-[#111111] uppercase tracking-wider">
-                        Stock at Each Branch
+                        Stok Setiap Cabang
                     </h3>
                     <span class="text-[10px] font-bold text-gray-400">Pilih cabang lokasi Anda</span>
                 </div>
@@ -276,7 +272,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <p class="leading-snug">
-                        <strong>Ketentuan Transaksi:</strong> Select a branch at checkout. Each transaction is limited to one branch.
+                        <strong>Ketentuan Transaksi:</strong> Pilih cabang lokasi pengambilan/pengiriman. Setiap transaksi terbatas untuk satu cabang.
                     </p>
                 </div>
 
@@ -318,8 +314,8 @@
 
             <hr class="border-gray-100">
 
-            <!-- QUANTITY AND ACTION BUTTONS -->
-            <div class="space-y-4">
+            <!-- 8. Jumlah / quantity yang ingin di beli customer -->
+            <div class="space-y-2">
                 <div class="flex items-center gap-4">
                     <label class="text-xs font-extrabold text-gray-800 uppercase tracking-wider">Jumlah:</label>
                     <div class="flex items-center border border-gray-200 rounded-2xl overflow-hidden bg-gray-50 p-1">
@@ -340,41 +336,20 @@
                     </div>
                     <span class="text-xs text-gray-400 font-medium" x-text="'Maksimal ' + selectedBranchStock + ' Sak di ' + selectedBranchName"></span>
                 </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                    <!-- ADD TO CART BUTTON (Primary Orange #F97316) -->
-                    <button type="button" 
-                            @click="addToCart()"
-                            :disabled="selectedBranchStock === 0"
-                            :class="selectedBranchStock === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-orange-600 active:scale-95 shadow-md shadow-orange-500/20'"
-                            class="w-full py-4 bg-[#F97316] text-white rounded-2xl font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                        Add to Cart
-                    </button>
-
-                    <!-- BUY NOW BUTTON (White background, Dark text, Border) -->
-                    <button type="button" 
-                            @click="buyNow()"
-                            :disabled="selectedBranchStock === 0"
-                            :class="selectedBranchStock === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50 active:scale-95'"
-                            class="w-full py-4 bg-white text-[#111111] border-2 border-gray-900 rounded-2xl font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-sm">
-                        Buy Now
-                    </button>
-                </div>
             </div>
 
-            <!-- FULFILLMENT METHOD (MUST BE SELECTED) -->
-            <div class="pt-4 border-t border-gray-100 space-y-3">
+            <hr class="border-gray-100">
+
+            <!-- 9. Metode pemenuhan pesanan -->
+            <div class="space-y-3">
                 <div class="flex items-center justify-between">
                     <h4 class="text-xs font-extrabold text-gray-800 uppercase tracking-wider">
-                        Fulfillment Method <span class="text-rose-500">*</span>
+                        Metode Pemenuhan Pesanan <span class="text-rose-500">*</span>
                     </h4>
                     <span class="text-[10px] font-bold text-gray-400">Pilih salah satu</span>
                 </div>
 
-                <!-- ALERT ERROR IF NOT SELECTED -->
+                <!-- Alert Error If Not Selected -->
                 <div x-show="fulfillmentError" 
                      x-transition 
                      style="display: none;" 
@@ -386,7 +361,7 @@
                 </div>
                 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <!-- OPTION 1: PICKUP -->
+                    <!-- Option 1: Pickup -->
                     <button type="button" 
                             @click="selectFulfillment('pickup')"
                             :class="selectedFulfillment === 'pickup' 
@@ -408,7 +383,7 @@
                         </div>
                     </button>
 
-                    <!-- OPTION 2: DELIVERY -->
+                    <!-- Option 2: Delivery -->
                     <button type="button" 
                             @click="selectFulfillment('delivery')"
                             :class="selectedFulfillment === 'delivery' 
@@ -430,6 +405,30 @@
                         </div>
                     </button>
                 </div>
+            </div>
+
+            <!-- 10. Button tambah ke keranjang dan juga button Beli sekarang -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <!-- Tambah ke Keranjang Button -->
+                <button type="button" 
+                        @click="addToCart()"
+                        :disabled="selectedBranchStock === 0"
+                        :class="selectedBranchStock === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-orange-600 active:scale-95 shadow-md shadow-orange-500/20'"
+                        class="w-full py-4 bg-[#F97316] text-white rounded-2xl font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    Tambah ke Keranjang
+                </button>
+
+                <!-- Beli Sekarang Button -->
+                <button type="button" 
+                        @click="buyNow()"
+                        :disabled="selectedBranchStock === 0"
+                        :class="selectedBranchStock === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50 active:scale-95'"
+                        class="w-full py-4 bg-white text-[#111111] border-2 border-gray-900 rounded-2xl font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-sm">
+                    Beli Sekarang
+                </button>
             </div>
 
         </div>
@@ -558,46 +557,6 @@
         </div>
     </div>
 
-    <!-- 6. BOTTOM BENEFITS SECTION -->
-    <div class="pt-12 border-t border-gray-200/80">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div class="flex items-start gap-4 p-5 rounded-3xl bg-white border border-gray-100 shadow-sm">
-                <div class="w-12 h-12 rounded-2xl bg-orange-50 text-[#F97316] flex items-center justify-center shrink-0 font-bold border border-orange-100">
-                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                    </svg>
-                </div>
-                <div>
-                    <h4 class="font-extrabold text-[#111111] text-base mb-1">STOK REAL-TIME</h4>
-                    <p class="text-xs text-gray-500 leading-relaxed">Cek ketersediaan barang sebelum datang ke toko.</p>
-                </div>
-            </div>
-
-            <div class="flex items-start gap-4 p-5 rounded-3xl bg-white border border-gray-100 shadow-sm">
-                <div class="w-12 h-12 rounded-2xl bg-orange-50 text-[#F97316] flex items-center justify-center shrink-0 font-bold border border-orange-100">
-                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                    </svg>
-                </div>
-                <div>
-                    <h4 class="font-extrabold text-[#111111] text-base mb-1">PICK UP ATAU DELIVERY</h4>
-                    <p class="text-xs text-gray-500 leading-relaxed">Ambil sendiri Gratis atau kirim ke lokasi Anda.</p>
-                </div>
-            </div>
-
-            <div class="flex items-start gap-4 p-5 rounded-3xl bg-white border border-gray-100 shadow-sm">
-                <div class="w-12 h-12 rounded-2xl bg-orange-50 text-[#F97316] flex items-center justify-center shrink-0 font-bold border border-orange-100">
-                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                </div>
-                <div>
-                    <h4 class="font-extrabold text-[#111111] text-base mb-1">TRANSAKSI AMAN</h4>
-                    <p class="text-xs text-gray-500 leading-relaxed">Pembayaran aman melalui payment gateway.</p>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- 7. ITEM CHECKOUT / ADD TO CART CONFIRMATION MODAL -->
     <template x-if="showConfirmModal">
