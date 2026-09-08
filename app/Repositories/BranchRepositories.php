@@ -10,23 +10,29 @@ class BranchRepositories
             [
                 'id' => 1,
                 'name' => 'Serdam',
+                'short_address' => 'Jl. Sungai Raya Dalam, Serdam',
+                'address' => 'Jl. Sungai Raya Dalam, Komp. Ruko Pesona Serdam No. 05, Sungai Raya, Kec. Sungai Raya, Kab. Kubu Raya, Kalimantan Barat 78116',
                 'city' => 'Pontianak',
                 'status' => 'Buka',
-                'image' => 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=800&auto=format&fit=crop&q=80',
+                'image' => 'images/locations/serdam.jpg',
             ],
             [
                 'id' => 2,
                 'name' => 'Gajahmada',
+                'short_address' => 'Jl. Gajah Mada, Pontianak Selatan',
+                'address' => 'Jl. Gajah Mada, Komp. Ruko Gajah Mada Square No. 12, Benua Melayu Darat, Kec. Pontianak Selatan, Kota Pontianak, Kalimantan Barat 78121',
                 'city' => 'Pontianak',
                 'status' => 'Buka',
-                'image' => 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=800&auto=format&fit=crop&q=80',
+                'image' => 'images/locations/gajahmada.jpg',
             ],
             [
                 'id' => 3,
                 'name' => 'Kota Baru',
+                'short_address' => 'Jl. Prof. M. Yamin, Kota Baru',
+                'address' => 'Jl. Prof. M. Yamin, Komp. Ruko Kota Baru Indah No. 08, Kota Baru, Kec. Pontianak Selatan, Kota Pontianak, Kalimantan Barat 78121',
                 'city' => 'Pontianak',
                 'status' => 'Buka',
-                'image' => 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&auto=format&fit=crop&q=80',
+                'image' => 'images/locations/kota-baru.jpg',
             ],
         ];
     }

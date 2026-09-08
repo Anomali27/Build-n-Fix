@@ -7,19 +7,15 @@
             <!-- Company Info -->
             <div class="space-y-4">
                 <a href="{{ route('home') }}" class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#F97316] to-amber-500 flex items-center justify-center text-white font-extrabold text-xl shadow-lg shadow-orange-500/20">
-                        B
-                    </div>
                     <div class="flex flex-col">
                         <span class="text-xl font-extrabold tracking-tight leading-none text-white">BUILD N FIX</span>
                         <span class="text-[10px] font-semibold text-gray-400 tracking-widest uppercase mt-0.5">PT STRUCTON</span>
                     </div>
                 </a>
                 <p class="text-gray-400 text-sm leading-relaxed">
-                    Build n Fix adalah penyedia bahan konstruksi terpercaya untuk segala skala pembangunan Anda. Dari semen hingga sistem pipa berkualitas tinggi.
+                    Build N Fix adalah penyedia bahan konstruksi terpercaya untuk segala skala pembangunan Anda. Dari semen hingga sistem pipa berkualitas tinggi.
                 </p>
                 <div class="flex items-center gap-2 pt-2">
-                    <span class="w-2 h-2 rounded-full bg-[#10B981] animate-pulse"></span>
                     <span class="text-xs text-gray-400 font-semibold">Layanan Pelanggan 24/7 Siap Membantu</span>
                 </div>
             </div>
@@ -34,8 +30,8 @@
                     <li><a href="{{ route('home') }}" class="text-gray-400 hover:text-[#F97316] text-sm font-medium transition-colors">Beranda</a></li>
                     <li><a href="#category" class="text-gray-400 hover:text-[#F97316] text-sm font-medium transition-colors">Produk Unggulan</a></li>
                     <li><a href="#category" class="text-gray-400 hover:text-[#F97316] text-sm font-medium transition-colors">Kategori Material</a></li>
-                    <li><a href="#advantages" class="text-gray-400 hover:text-[#F97316] text-sm font-medium transition-colors">Promo Khusus</a></li>
                     <li><a href="#advantages" class="text-gray-400 hover:text-[#F97316] text-sm font-medium transition-colors">Keuntungan</a></li>
+                    <li><a href="#reviews" class="text-gray-400 hover:text-[#F97316] text-sm font-medium transition-colors">Ulasan</a></li>
                 </ul>
             </div>
 

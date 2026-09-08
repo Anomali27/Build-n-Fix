@@ -18,7 +18,7 @@
 
 @if($view === 'list')
     <!-- List View Card -->
-    <div class="group bg-white rounded-2xl border border-gray-200/80 p-4 shadow-sm hover:shadow-md hover:border-[#F97316]/40 transition-all duration-200 flex items-center justify-between gap-6">
+    <div class="group bg-white rounded-2xl border border-gray-200/80 p-4 shadow-sm hover:shadow-md hover:border-[#F97316]/40 transition-all duration-200 flex items-center justify-between gap-10">
         <div class="flex items-center gap-4">
             <div class="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0 relative">
                 @if($imageUrl)
@@ -58,11 +58,6 @@
 @else
     <!-- Grid View Card -->
     <div class="group bg-white rounded-2xl border border-gray-200/80 overflow-hidden shadow-sm hover:shadow-lg hover:border-[#F97316]/40 transition-all duration-300 flex flex-col h-full transform hover:-translate-y-1 relative">
-        
-        <!-- Status Badge Overlay -->
-        <div class="absolute top-3 left-3 z-10">
-            <x-status-badge :status="$status" />
-        </div>
 
         <!-- Admin Edit Quick Button -->
         @auth

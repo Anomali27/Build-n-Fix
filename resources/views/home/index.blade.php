@@ -11,13 +11,8 @@
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
             
             <!-- Left Column: Content -->
-            <div class="lg:col-span-6 space-y-8">
-                <!-- Eyebrow Pill -->
-                <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-[#F97316] font-extrabold text-xs tracking-wider uppercase">
-                    <span class="w-2 h-2 rounded-full bg-[#F97316] animate-pulse"></span>
-                    MATERIALS FOR EVERY BUILD
-                </div>
-                
+            <div class="lg:col-span-6 space-y-6">
+                               
                 <!-- Hero Main Heading -->
                 <h1 class="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-[#111111] leading-[1.08] tracking-tight">
                     Build Better.<br>
@@ -26,16 +21,16 @@
                 
                 <!-- Subtitle -->
                 <p class="text-gray-600 text-lg md:text-xl max-w-lg leading-relaxed font-normal">
-                    semua kebutuhan bahan bangunan untuk proyek Anda, tersedia di tiga lokasi Build n Fix
+                    Semua kebutuhan bahan bangunan untuk proyek Anda, tersedia di tiga lokasi Build n Fix
                 </p>
                 
                 <!-- CTA Buttons -->
                 <div class="flex flex-col sm:flex-row gap-4 pt-2">
                     <a href="{{ Route::has('products.index') ? route('products.index') : '#category' }}" 
                        class="inline-flex justify-center items-center px-8 py-4 bg-gradient-to-r from-[#F97316] to-amber-500 text-white rounded-2xl font-bold shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 text-base">
-                        Belanja sekarang <span class="ml-2 transition-transform group-hover:translate-x-1" aria-hidden="true">&rarr;</span>
+                        Belanja sekarang
                     </a>
-                    <a href="#locations" 
+                    <a href="{{ route('locations.index') }}" 
                        class="inline-flex justify-center items-center px-8 py-4 bg-white text-[#111111] border border-gray-200 rounded-2xl font-bold hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 text-base shadow-sm">
                         Lihat lokasi
                     </a>
@@ -59,7 +54,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                         </div>
-                        <span class="text-xs sm:text-sm font-extrabold text-[#111111] leading-tight">Stok Real-time<br><span class="font-medium text-gray-500">& terpercaya</span></span>
+                        <span class="text-xs sm:text-sm font-extrabold text-[#111111] leading-tight">Stok Real-time</span>
                     </div>
 
                     <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
@@ -68,7 +63,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                             </svg>
                         </div>
-                        <span class="text-xs sm:text-sm font-extrabold text-[#111111] leading-tight">pick up atau<br><span class="font-medium text-gray-500">Delivery</span></span>
+                        <span class="text-xs sm:text-sm font-extrabold text-[#111111] leading-tight">Pick up atau Delivery</span>
                     </div>
                 </div>
             </div>
@@ -79,27 +74,19 @@
                     <div class="bg-gray-900 rounded-2xl overflow-hidden h-96 sm:h-[480px] lg:h-[520px] relative group">
                         <img 
                             src="{{ asset('images/building_store_bg.png') }}" 
-                            onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1200&auto=format&fit=crop&q=80';"
                             alt="Build N Fix Store Showroom" 
                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-95"
                         >
                         <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
 
-                        <!-- Floating Live Stock Badge -->
-                        <div class="absolute top-5 right-5 bg-black/60 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/20 text-white flex items-center gap-2 shadow-lg">
-                            <span class="w-2.5 h-2.5 rounded-full bg-[#10B981] animate-ping"></span>
-                            <span class="text-xs font-bold">10.000+ Item Ready</span>
-                        </div>
-
                         <!-- Store Title Banner -->
-                        <div class="absolute bottom-6 left-6 right-6 p-5 bg-white/95 backdrop-blur-md rounded-2xl border border-white/40 shadow-xl flex items-center justify-between">
+                        <div class="absolute bottom-6 left-6 right-6 p-5 backdrop-blur-md rounded-2xl border border-white/40 shadow-xl flex items-center justify-between">
                             <div>
-                                <span class="text-[11px] font-extrabold text-[#F97316] uppercase tracking-widest block mb-0.5">Showroom & Gudang Utama</span>
-                                <h3 class="font-extrabold text-[#111111] text-lg">Material Bangunan Terlengkap</h3>
+                                <span class="text-[11px] font-extrabold text-[#F97316] uppercase tracking-widest block mb-0.5"></span>
+                                <h3 class="font-extrabold text-[#FFFFFF] text-xl">Pilihan Material untuk Setiap Proyek</h3>
+                                <span class="text-gray-300 text-sm">Temukan material bangunan yang Anda butuhkan dengan mudah</span>
                             </div>
-                            <div class="w-10 h-10 rounded-xl bg-orange-500/10 text-[#F97316] flex items-center justify-center font-bold">
-                                &rarr;
-                            </div>
+                            
                         </div>
                     </div>
                 </div>
@@ -120,9 +107,6 @@
             <h2 class="text-3xl md:text-4xl font-extrabold text-[#111111] tracking-tight">Kunjungi toko terdekat</h2>
             <p class="text-gray-600 mt-2 text-base">Tiga Cabang kami siap membantu anda</p>
         </div>
-        <a href="#" class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 hover:bg-[#F97316] hover:text-white text-[#111111] font-bold text-xs transition-all duration-200">
-            Lihat semua lokasi <span aria-hidden="true">&rarr;</span>
-        </a>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -162,14 +146,14 @@
 </section>
 
 <!-- 4. Advantages Section -->
-<section id="advantages" class="bg-[#111111] text-white py-24 relative overflow-hidden">
+<section id="advantages" class="bg-[#111111] text-white py-36 relative overflow-hidden">
     <!-- Dark Mode Ambient Glow -->
     <div class="absolute top-0 left-1/3 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
     <div class="container mx-auto px-4 lg:px-8 relative z-10">
-        <div class="text-center max-w-xl mx-auto mb-16">
-            <span class="px-3.5 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-[#F97316] font-extrabold text-xs uppercase tracking-widest inline-block mb-3">Kelebihan Build n Fix</span>
-            <h2 class="text-3xl md:text-4xl font-extrabold text-white tracking-tight">Kenapa memilih Build n Fix?</h2>
+        <div class="text-center max-w-2xl mx-auto mb-30">
+            <span class="px-3.5 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-[#F97316] font-extrabold text-sm uppercase tracking-widest inline-block mb-3">Kelebihan Build n Fix</span>
+            <h2 class="text-4xl md:text-5xl font-extrabold text-white tracking-tight">Kenapa memilih Build n Fix?</h2>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -201,7 +185,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                     </svg>
                 </div>
-                <h3 class="text-xl font-extrabold mb-2 text-white">pick up atau Delivery</h3>
+                <h3 class="text-xl font-extrabold mb-2 text-white">Pick up atau Delivery</h3>
                 <p class="text-gray-400 text-sm leading-relaxed">Ambil sendiri Gratis atau kirim ke lokasi Anda</p>
             </div>
 
@@ -212,7 +196,7 @@
                     </svg>
                 </div>
                 <h3 class="text-xl font-extrabold mb-2 text-white">Belanja Mudah</h3>
-                <p class="text-gray-400 text-sm leading-relaxed">pilih produk, pilih cabang, dan checkout online</p>
+                <p class="text-gray-400 text-sm leading-relaxed">Pilih produk, pilih cabang, dan checkout online</p>
             </div>
 
         </div>
@@ -246,15 +230,10 @@
         <div class="absolute -right-20 -bottom-20 w-80 h-80 bg-orange-500/15 rounded-full blur-3xl pointer-events-none"></div>
 
         <div class="flex items-center gap-6 max-w-3xl relative z-10">
-            <div class="hidden sm:flex w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#F97316] to-amber-500 text-white flex-shrink-0 items-center justify-center font-bold shadow-lg shadow-orange-500/25">
-                <svg class="w-9 h-9" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-            </div>
             <div>
                 <h2 class="text-3xl md:text-4xl font-extrabold text-white mb-3 tracking-tight">Siap Membangun Proyek Anda?</h2>
                 <p class="text-gray-300 text-base md:text-lg leading-relaxed font-normal">
-                    Temukan bahan bangunan Berkualitas dengan harga terbaik di build n fix sekarang juga.
+                    Temukan bahan bangunan Berkualitas dengan harga terbaik di <span class="font-bold text-[#F97316]">Build N Fix</span> sekarang juga.
                 </p>
             </div>
         </div>
@@ -262,7 +241,7 @@
         <div class="w-full lg:w-auto flex-shrink-0 relative z-10">
             <a href="{{ Route::has('products.index') ? route('products.index') : '#category' }}" 
                class="w-full lg:w-auto inline-flex justify-center items-center px-8 py-4 bg-gradient-to-r from-[#F97316] to-amber-500 text-white rounded-2xl font-bold text-lg hover:shadow-xl hover:shadow-orange-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 whitespace-nowrap">
-                Eksplorasi Produk <span class="ml-2" aria-hidden="true">&rarr;</span>
+                Eksplor Produk Sekarang
             </a>
         </div>
     </div>

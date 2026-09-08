@@ -6,7 +6,7 @@
         : null;
 @endphp
 
-<div class="bg-white rounded-2xl border border-gray-100/90 overflow-hidden shadow-sm hover:shadow-xl hover:border-orange-500/30 transition-all duration-300 group flex flex-col h-full transform hover:-translate-y-1">
+<a href="{{ route('locations.index') }}" class="bg-white rounded-2xl border border-gray-100/90 overflow-hidden shadow-sm hover:shadow-xl hover:border-orange-500/30 transition-all duration-300 group flex flex-col h-full transform hover:-translate-y-1 cursor-pointer block">
     <div class="h-56 bg-gray-900 w-full relative overflow-hidden">
         @if($imageUrl)
             <img src="{{ $imageUrl }}" alt="{{ $branch['name'] }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out opacity-95">
@@ -18,15 +18,6 @@
                 </svg>
             </div>
         @endif
-        
-        <!-- Status Pill -->
-        <div class="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3.5 py-1.5 rounded-full text-xs font-bold text-gray-800 flex items-center gap-2 shadow-md border border-white/40">
-            <span class="relative flex h-2.5 w-2.5">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#10B981] opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#10B981]"></span>
-            </span>
-            <span>{{ $branch['status'] }}</span>
-        </div>
 
         <div class="absolute bottom-4 left-4 right-4 text-white">
             <div class="text-xs font-medium text-orange-300 uppercase tracking-widest mb-0.5">Cabang Resmi</div>
@@ -43,8 +34,8 @@
             {{ $branch['city'] }}, Kalimantan Barat
         </p>
         
-        <a href="#" class="w-full py-3 px-4 bg-gray-50 hover:bg-[#F97316] text-gray-800 hover:text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all duration-200 border border-gray-100 hover:border-transparent group-hover:shadow-md group-hover:shadow-orange-500/20">
+        <div class="w-full py-3 px-4 bg-gray-50 group-hover:bg-[#F97316] text-gray-800 group-hover:text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all duration-200 border border-gray-100 group-hover:border-transparent group-hover:shadow-md group-hover:shadow-orange-500/20">
             Lihat Toko <span aria-hidden="true" class="group-hover:translate-x-1 transition-transform">&rarr;</span>
-        </a>
+        </div>
     </div>
-</div>
+</a>
