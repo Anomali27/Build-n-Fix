@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Data;
+namespace App\Repositories;
 
 use Illuminate\Support\Facades\Session;
 
-class BranchStockData
+class BranchStockRepositories
 {
     public static function getAll(): array
     {

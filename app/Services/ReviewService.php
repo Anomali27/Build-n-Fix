@@ -2,12 +2,12 @@
 
 namespace App\Services;
 
-use App\Data\ReviewData;
+use App\Repositories\ReviewRepositories;
 
 class ReviewService
 {
     public function getAllReviews(): array
     {
-        return ReviewData::getAll();
+        return ReviewRepositories::getAll();
     }
 }

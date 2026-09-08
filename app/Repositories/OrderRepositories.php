@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Data;
+namespace App\Repositories;
 
 use Illuminate\Support\Facades\Session;
 
-class OrderData
+class OrderRepositories
 {
     /**
      * Centralized mock order data.

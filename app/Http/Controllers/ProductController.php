@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Data\CategoryData;
+use App\Repositories\CategoryRepositories;
 use App\Services\ProductService;
 use Illuminate\Http\Request;
 
@@ -26,7 +26,7 @@ class ProductController extends Controller
         // Resolve Page Title
         $pageTitle = 'Semua Produk';
         if ($selectedCategory !== 'all' && $selectedCategory !== 'semua' && ! empty($selectedCategory)) {
-            $categories = CategoryData::getAll();
+            $categories = CategoryRepositories::getAll();
             foreach ($categories as $cat) {
                 if ((string) $cat['id'] === (string) $selectedCategory
                     || strtolower($cat['slug'] ?? '') === strtolower($selectedCategory)

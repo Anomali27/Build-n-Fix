@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Data;
+namespace App\Repositories;
 
 use Illuminate\Support\Facades\Session;
 
-class UserData
+class UserRepositories
 {
     /**
      * Centralized static mock user data.

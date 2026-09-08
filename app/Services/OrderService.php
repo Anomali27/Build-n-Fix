@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Data\OrderData;
+use App\Repositories\OrderRepositories;
 use Illuminate\Support\Facades\Session;
 
 class OrderService
@@ -15,7 +15,7 @@ class OrderService
      */
     public function getCustomerOrders(int $userId, string $filter = 'all', ?string $search = null): array
     {
-        $orders = OrderData::getByUser($userId);
+        $orders = OrderRepositories::getByUser($userId);
 
         if (! empty($search)) {
             $query = strtolower(trim($search));
@@ -50,7 +50,7 @@ class OrderService
      */
     public function getSuccessOrders(int $userId): array
     {
-        $orders = OrderData::getByUser($userId);
+        $orders = OrderRepositories::getByUser($userId);
         $successOrders = array_filter($orders, function ($o) {
             return ($o['payment_status'] ?? '') === 'paid';
         });
@@ -65,7 +65,7 @@ class OrderService
      */
     public function getTrackingOrders(int $userId): array
     {
-        $orders = OrderData::getByUser($userId);
+        $orders = OrderRepositories::getByUser($userId);
         $activeOrders = array_filter($orders, function ($o) {
             return ($o['order_status'] ?? '') !== 'order_completed';
         });
@@ -80,7 +80,7 @@ class OrderService
      */
     public function getHistoryOrders(int $userId): array
     {
-        $orders = OrderData::getByUser($userId);
+        $orders = OrderRepositories::getByUser($userId);
         $historyOrders = array_filter($orders, function ($o) {
             return ($o['order_status'] ?? '') === 'order_completed';
         });
@@ -95,7 +95,7 @@ class OrderService
      */
     public function getOrderDetail(string $identifier, int $userId): ?array
     {
-        $order = OrderData::find($identifier);
+        $order = OrderRepositories::find($identifier);
 
         if (! $order) {
             return null;
@@ -261,6 +261,6 @@ class OrderService
             'items' => $items,
         ];
 
-        return OrderData::create($orderPayload);
+        return OrderRepositories::create($orderPayload);
     }
 }

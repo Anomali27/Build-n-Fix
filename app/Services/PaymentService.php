@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Data\BranchStockData;
+use App\Repositories\BranchStockRepositories;
 use Illuminate\Support\Facades\Session;
 
 class PaymentService
@@ -78,7 +78,7 @@ class PaymentService
             $productId = (int) $item['product_id'];
             $qty = (int) $item['quantity'];
 
-            BranchStockData::decrementStock($productId, $branchId, $qty);
+            BranchStockRepositories::decrementStock($productId, $branchId, $qty);
         }
 
         // 3. Clear Cart & Checkout session

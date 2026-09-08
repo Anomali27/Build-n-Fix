@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Data;
+namespace App\Repositories;
 
-class ProductData
+class ProductRepositories
 {
     public static function getAll(): array
     {

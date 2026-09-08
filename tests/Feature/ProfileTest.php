@@ -1,6 +1,6 @@
 <?php
 
-use App\Data\UserData;
+use App\Repositories\UserRepositories;
 use Illuminate\Support\Facades\Session;
 
 test('guest cannot access profile page and is redirected to login', function () {
@@ -40,7 +40,7 @@ test('user can update full name and session is updated', function () {
     $user = Session::get('user');
     expect($user['name'])->toBe('Edward Cornelius');
 
-    $userData = UserData::find(1);
+    $userData = UserRepositories::find(1);
     expect($userData['name'])->toBe('Edward Cornelius');
 });
 
@@ -72,7 +72,7 @@ test('user can update account password with correct current password', function 
     $response->assertRedirect();
     $response->assertSessionHas('success', 'Password updated successfully.');
 
-    expect(UserData::verifyPassword(1, 'newsecret123'))->toBeTrue();
+    expect(UserRepositories::verifyPassword(1, 'newsecret123'))->toBeTrue();
 });
 
 test('password update fails with wrong current password', function () {

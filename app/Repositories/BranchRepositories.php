@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Data;
+namespace App\Repositories;
 
-class BranchData
+class BranchRepositories
 {
     public static function getAll(): array
     {

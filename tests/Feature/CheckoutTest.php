@@ -1,6 +1,6 @@
 <?php
 
-use App\Data\BranchStockData;
+use App\Repositories\BranchStockRepositories;
 use App\Services\CartService;
 use App\Services\CheckoutService;
 use Illuminate\Support\Facades\Session;
@@ -103,7 +103,7 @@ test('payment simulation failure keeps cart intact and does not decrease stock',
         'fulfillment_method' => 'pickup',
     ]);
 
-    $initialStock = BranchStockData::getStock(1, 1);
+    $initialStock = BranchStockRepositories::getStock(1, 1);
 
     $response = $this->post(route('checkout.process-payment'), [
         'payment_method' => 'Virtual Account',
@@ -116,7 +116,7 @@ test('payment simulation failure keeps cart intact and does not decrease stock',
     $cart = app(CartService::class)->getCart();
     expect($cart['item_count'])->toBe(1);
 
-    $stockAfterFailure = BranchStockData::getStock(1, 1);
+    $stockAfterFailure = BranchStockRepositories::getStock(1, 1);
     expect($stockAfterFailure)->toBe($initialStock);
 });
 
@@ -129,8 +129,8 @@ test('payment simulation success creates order, decrements stock for selected br
         'fulfillment_method' => 'pickup',
     ]);
 
-    $stockSerdamBefore = BranchStockData::getStock(1, 1);
-    $stockGajahmadaBefore = BranchStockData::getStock(1, 2);
+    $stockSerdamBefore = BranchStockRepositories::getStock(1, 1);
+    $stockGajahmadaBefore = BranchStockRepositories::getStock(1, 2);
 
     $response = $this->post(route('checkout.process-payment'), [
         'payment_method' => 'Virtual Account (BCA)',
@@ -145,8 +145,8 @@ test('payment simulation success creates order, decrements stock for selected br
     expect($cart['item_count'])->toBe(0);
 
     // Stock for Serdam (branch 1) decreased by 2, Gajahmada (branch 2) unchanged
-    $stockSerdamAfter = BranchStockData::getStock(1, 1);
-    $stockGajahmadaAfter = BranchStockData::getStock(1, 2);
+    $stockSerdamAfter = BranchStockRepositories::getStock(1, 1);
+    $stockGajahmadaAfter = BranchStockRepositories::getStock(1, 2);
 
     expect($stockSerdamAfter)->toBe($stockSerdamBefore - 2);
     expect($stockGajahmadaAfter)->toBe($stockGajahmadaBefore);

@@ -2,44 +2,50 @@
     <div class="container mx-auto px-4 lg:px-8 py-3.5 flex items-center justify-between gap-4">
         <!-- Brand Logo -->
         <a href="{{ route('home') }}" class="flex items-center gap-3 group">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#F97316] to-amber-500 flex items-center justify-center text-white font-extrabold text-xl shadow-lg shadow-orange-500/20 group-hover:scale-105 transition-transform">
-                B
-            </div>
             <div class="flex flex-col">
-                <span class="text-lg font-extrabold tracking-tight leading-none text-white group-hover:text-[#F97316] transition-colors">BUILD N FIX</span>
+                <span class="text-lg font-extrabold tracking-tight leading-none text-[#F97316] group-hover:text-[#FFFFFF] transition-colors">BUILD N FIX</span>
                 <span class="text-[10px] font-semibold text-gray-400 tracking-widest uppercase mt-0.5">PT STRUCTON</span>
             </div>
         </a>
 
         <!-- Desktop Navigation Links -->
-        <nav class="hidden md:flex items-center gap-1 bg-white/5 border border-white/10 p-1.5 rounded-full backdrop-blur-sm">
+        <nav class="hidden md:flex items-center gap-6">
             <a href="{{ route('home') }}" 
-               class="px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 {{ request()->routeIs('home') ? 'bg-[#F97316] text-white shadow-md shadow-orange-500/20' : 'text-gray-300 hover:text-white hover:bg-white/10' }}">
-               Home
+            class="text-xs font-semibold transition-all duration-200
+            {{ request()->routeIs('home') 
+                ? 'text-[#F97316]' 
+                : 'text-gray-300 hover:text-white hover:underline underline-offset-4' }}">
+                Home
             </a>
+
             <a href="{{ Route::has('categories.index') ? route('categories.index') : '#category' }}" 
-               class="px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 {{ request()->routeIs('categories.*') ? 'bg-[#F97316] text-white shadow-md shadow-orange-500/20' : 'text-gray-300 hover:text-white hover:bg-white/10' }}">
-               Category
+            class="text-xs font-semibold transition-all duration-200
+            {{ request()->routeIs('categories.*') 
+                ? 'text-[#F97316]' 
+                : 'text-gray-300 hover:text-[#F97316] hover:underline underline-offset-4' }}">
+                Category
             </a>
+
             <a href="{{ route('home') }}#advantages" 
-               class="px-4 py-1.5 rounded-full text-xs font-semibold text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-200">
-               Advantages
+            class="text-xs font-semibold text-gray-300 hover:text-[#F97316] hover:underline underline-offset-4 transition-all duration-200">
+                Advantages
             </a>
+
             <a href="{{ route('home') }}#reviews" 
-               class="px-4 py-1.5 rounded-full text-xs font-semibold text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-200">
-               Review
+            class="text-xs font-semibold text-gray-300 hover:text-[#F97316] hover:underline underline-offset-4 transition-all duration-200">
+                Review
             </a>
         </nav>
 
         <!-- Search Input -->
-        <div class="hidden lg:flex relative flex-1 max-w-xs">
+        <div class="hidden lg:flex relative flex-1 max-w-125">
             <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
             </span>
             <input type="text" 
-                   class="w-full bg-white/10 text-xs text-white placeholder-gray-400 rounded-full py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-[#F97316]/50 focus:bg-white/15 border border-white/10 transition-all" 
+                   class="w-full bg-white/10 text-xs text-white placeholder-gray-400 rounded-2xl py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-[#F97316]/50 focus:bg-white/15 border border-white/10 transition-all" 
                    placeholder="Search products...">
         </div>
 

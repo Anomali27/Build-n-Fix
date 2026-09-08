@@ -1,6 +1,6 @@
 <?php
 
-use App\Data\UserData;
+use App\Repositories\UserRepositories;
 use Illuminate\Support\Facades\Session;
 
 // ── Login Page ──────────────────────────────────────────────────────────────
@@ -135,8 +135,8 @@ test('register creates customer account with forced customer role and logs them 
     expect($user['branch'])->toBeNull();
     expect($user)->not->toHaveKey('password');
 
-    // Verify stored in UserData
-    $found = UserData::findByEmail('budi@example.com');
+    // Verify stored in UserRepositories
+    $found = UserRepositories::findByEmail('budi@example.com');
     expect($found)->not->toBeNull();
     expect($found['role'])->toBe('customer');
 });
