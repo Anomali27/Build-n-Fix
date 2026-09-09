@@ -15,11 +15,40 @@ class CategoryService
      */
     public function getAllCategories(): array
     {
-        if (! Session::has('custom_categories')) {
-            Session::put('custom_categories', CategoryRepositories::getAll());
+        $repoCategories = CategoryRepositories::getAll();
+
+        if (Session::has('custom_categories')) {
+            $sessionCategories = Session::get('custom_categories', []);
+            $hasLegacy = array_filter($sessionCategories, function ($c) {
+                return in_array($c['slug'] ?? '', ['bahan-lainnya', 'lantai-keramik', 'genteng-insulation']);
+            });
+
+            if (! empty($hasLegacy) || count($sessionCategories) < count($repoCategories)) {
+                Session::put('custom_categories', $repoCategories);
+            }
+        } else {
+            Session::put('custom_categories', $repoCategories);
         }
 
-        return Session::get('custom_categories', []);
+        $categories = Session::get('custom_categories', []);
+        $allProducts = ProductRepositories::getAll();
+
+        $categoryProductCounts = [];
+        foreach ($allProducts as $p) {
+            $catId = (string) ($p['category_id'] ?? '');
+            if ($catId) {
+                $categoryProductCounts[$catId] = ($categoryProductCounts[$catId] ?? 0) + 1;
+            }
+        }
+
+        return array_map(function ($cat) use ($categoryProductCounts) {
+            $catId = (string) $cat['id'];
+            $computedCount = $categoryProductCounts[$catId] ?? 0;
+            $cat['count'] = $computedCount;
+            $cat['count_label'] = $computedCount.' Produk';
+
+            return $cat;
+        }, $categories);
     }
 
     /**

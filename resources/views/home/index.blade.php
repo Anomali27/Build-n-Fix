@@ -135,11 +135,11 @@
             </a>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             @forelse($categories as $category)
                 <x-category-card :category="$category" />
             @empty
-                <div class="col-span-6 text-center text-gray-500 py-8">Tidak ada data kategori.</div>
+                <div class="col-span-4 text-center text-gray-500 py-8">Tidak ada data kategori.</div>
             @endforelse
         </div>
     </div>
