@@ -2,9 +2,12 @@
 
 namespace App\Repositories;
 
+use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Str;
+
 class ProductRepositories
 {
-    public static function getAll(): array
+    public static function getRawDefaultList(): array
     {
         return [
             0 => [
@@ -2210,6 +2213,120 @@ class ProductRepositories
         ];
     }
 
+    public static function getAll(): array
+    {
+        $raw = self::getRawDefaultList();
+        $custom = Session::get('custom_products', []);
+        $all = array_merge($raw, $custom);
+
+        $overrides = Session::get('product_overrides', []);
+        $deleted = Session::get('deleted_products', []);
+
+        $result = [];
+        foreach ($all as $item) {
+            $id = (int) ($item['id'] ?? 0);
+            if (in_array($id, $deleted, true)) {
+                continue;
+            }
+            if (isset($overrides[$id])) {
+                $item = array_merge($item, $overrides[$id]);
+            }
+            $result[] = $item;
+        }
+
+        return $result;
+    }
+
+    public static function create(array $data): array
+    {
+        $all = self::getAll();
+        $nextId = count($all) > 0 ? max(array_column($all, 'id')) + 1 : 1;
+        $slug = Str::slug($data['name'] ?? ('Product-'.$nextId));
+        $sku = $data['sku'] ?? ('PRD-'.str_pad((string) $nextId, 3, '0', STR_PAD_LEFT));
+
+        $newProduct = [
+            'id' => $nextId,
+            'sku' => $sku,
+            'name' => $data['name'],
+            'slug' => $slug,
+            'category_id' => (int) ($data['category_id'] ?? 1),
+            'category' => $data['category'] ?? 'Semen, Pasir & Mortar',
+            'category_slug' => Str::slug($data['category'] ?? 'Semen, Pasir & Mortar'),
+            'brand' => $data['brand'] ?? 'Build n Fix',
+            'size' => $data['size'] ?? $data['unit'] ?? 'Unit',
+            'unit' => $data['unit'] ?? $data['size'] ?? 'Unit',
+            'price' => (int) ($data['price'] ?? 0),
+            'short_description' => $data['short_description'] ?? $data['description'] ?? '',
+            'description' => $data['description'] ?? $data['short_description'] ?? '',
+            'additional_info' => $data['additional_info'] ?? 'Tersedia di cabang Build n Fix.',
+            'image' => $data['image'] ?? 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=600&auto=format&fit=crop&q=80',
+            'gallery' => [
+                $data['image'] ?? 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=600&auto=format&fit=crop&q=80',
+            ],
+            'status' => $data['status'] ?? 'active',
+            'popularity' => 50,
+        ];
+
+        $custom = Session::get('custom_products', []);
+        $custom[] = $newProduct;
+        Session::put('custom_products', $custom);
+
+        // Initialize default stock for all 3 branches
+        if (isset($data['stock_serdam'])) {
+            BranchStockRepositories::setStock($nextId, 1, (int) $data['stock_serdam']);
+        } else {
+            BranchStockRepositories::setStock($nextId, 1, 50);
+        }
+        if (isset($data['stock_gajahmada'])) {
+            BranchStockRepositories::setStock($nextId, 2, (int) $data['stock_gajahmada']);
+        } else {
+            BranchStockRepositories::setStock($nextId, 2, 40);
+        }
+        if (isset($data['stock_kotabaru'])) {
+            BranchStockRepositories::setStock($nextId, 3, (int) $data['stock_kotabaru']);
+        } else {
+            BranchStockRepositories::setStock($nextId, 3, 30);
+        }
+
+        return $newProduct;
+    }
+
+    public static function update(int|string $id, array $data): ?array
+    {
+        $product = self::find($id);
+        if (! $product) {
+            return null;
+        }
+
+        $pId = (int) $product['id'];
+        $overrides = Session::get('product_overrides', []);
+        $updatedData = array_merge($product, $data);
+        if (isset($data['name'])) {
+            $updatedData['slug'] = Str::slug($data['name']);
+        }
+        $overrides[$pId] = $updatedData;
+        Session::put('product_overrides', $overrides);
+
+        return $updatedData;
+    }
+
+    public static function delete(int|string $id): bool
+    {
+        $product = self::find($id);
+        if (! $product) {
+            return false;
+        }
+
+        $pId = (int) $product['id'];
+        $deleted = Session::get('deleted_products', []);
+        if (! in_array($pId, $deleted, true)) {
+            $deleted[] = $pId;
+            Session::put('deleted_products', $deleted);
+        }
+
+        return true;
+    }
+
     public static function getFeatured(): array
     {
         return array_slice(self::getAll(), 0, 8);
@@ -2218,7 +2335,7 @@ class ProductRepositories
     public static function find(int|string $idOrSlug): ?array
     {
         foreach (self::getAll() as $product) {
-            if ((string) $product['id'] === (string) $idOrSlug || $product['slug'] === (string) $idOrSlug) {
+            if ((string) $product['id'] === (string) $idOrSlug || $product['slug'] === (string) $idOrSlug || (string) ($product['sku'] ?? '') === (string) $idOrSlug) {
                 return $product;
             }
         }

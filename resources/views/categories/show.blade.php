@@ -191,7 +191,7 @@
         <main class="lg:col-span-9">
             @forelse($products as $product)
                 @if($loop->first)
-                    <div class="{{ $view === 'list' ? 'space-y-4' : 'grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-6' }}">
+                    <div class="{{ $view === 'list' ? 'space-y-4' : (in_array(($role ?? session('user.role')), ['admin', 'owner']) ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5' : 'grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-6') }}">
                 @endif
 
                 <x-product-card :product="$product" :view="$view" />

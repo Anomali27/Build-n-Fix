@@ -12,14 +12,38 @@
         <span class="text-[#F97316] font-bold">Product</span>
     </nav>
 
+    <!-- FLASH MESSAGES -->
+    @if(session('success'))
+        <div class="mb-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center justify-between">
+            <span>{{ session('success') }}</span>
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center justify-between">
+            <span>{{ session('error') }}</span>
+        </div>
+    @endif
+
     <!-- 2. PAGE HEADER -->
-    <div class="mb-8">
-        <h1 class="text-3xl md:text-4xl font-extrabold text-[#111111] tracking-tight">
-            {{ $pageTitle }}
-        </h1>
-        <p class="text-gray-600 text-sm md:text-base mt-2 font-normal">
-            Temukan lebih banyak produk bahan bangunan yang tersedia di Build n Fix.
-        </p>
+    <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-3xl md:text-4xl font-extrabold text-[#111111] tracking-tight">
+                {{ $pageTitle }}
+            </h1>
+            <p class="text-gray-600 text-sm md:text-base mt-2 font-normal">
+                Temukan lebih banyak produk bahan bangunan yang tersedia di Build n Fix.
+            </p>
+        </div>
+
+        @if(($role ?? session('user.role')) === 'admin')
+            <a href="{{ route('products.create') }}" 
+               class="px-5 py-3 rounded-2xl bg-[#F97316] hover:bg-[#EA580C] text-white font-extrabold text-xs shadow-lg shadow-orange-500/25 flex items-center gap-2 transition-all w-fit shrink-0">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                <span>Tambah Produk Baru</span>
+            </a>
+        @endif
     </div>
 
     <!-- 3. RESULT AND SORT BAR -->
@@ -240,7 +264,7 @@
         <main class="lg:col-span-9">
             @forelse($products as $product)
                 @if($loop->first)
-                    <div class="{{ $view === 'list' ? 'space-y-4' : 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5' }}">
+                    <div class="{{ $view === 'list' ? 'space-y-4' : (in_array(($role ?? session('user.role')), ['admin', 'owner']) ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5' : 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5') }}">
                 @endif
                 
                 <x-product-card :product="$product" :view="$view" :selectedBranch="!empty($selectedBranches) ? $selectedBranches[0] : null" />

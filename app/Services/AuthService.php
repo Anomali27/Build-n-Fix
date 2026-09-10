@@ -65,8 +65,7 @@ class AuthService
     public function getRedirectUrl(string $role): string
     {
         return match ($role) {
-            'admin' => '/admin/dashboard',
-            'owner' => '/owner/dashboard',
+            'admin', 'owner' => '/dashboard',
             default => '/',
         };
     }

@@ -3,6 +3,8 @@
         $user = session('user') ?? [];
         $userName = $user['name'] ?? 'User';
         $userEmail = $user['email'] ?? 'user@buildnfix.test';
+        $userRole = $user['role'] ?? 'customer';
+        $userBranch = $user['branch'] ?? null;
         
         $words = array_filter(explode(' ', trim($userName)));
         $initials = '';
@@ -11,6 +13,12 @@
         } else {
             $initials = strtoupper(substr($userName, 0, 2));
         }
+
+        $roleBadgeColor = match($userRole) {
+            'admin' => 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+            'owner' => 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+            default => 'bg-[#F97316]/20 text-[#F97316] border-[#F97316]/30',
+        };
     @endphp
 
     <!-- Native HTML5 Pure CSS Dropdown (Zero JS Dependency) -->
@@ -21,9 +29,14 @@
             <div class="w-8 h-8 rounded-xl bg-white/10 border border-white/20 text-[#F97316] flex items-center justify-center font-black text-xs group-hover:border-[#F97316] transition-colors shrink-0">
                 {{ $initials }}
             </div>
-            <span class="hidden md:inline-block text-xs font-bold text-gray-200 group-hover:text-white transition-colors max-w-[120px] truncate">
-                {{ $userName }}
-            </span>
+            <div class="hidden md:flex flex-col items-start leading-tight">
+                <span class="text-xs font-bold text-gray-200 group-hover:text-white transition-colors max-w-[120px] truncate">
+                    {{ $userName }}
+                </span>
+                <span class="text-[9px] font-extrabold uppercase px-1 py-0.2 rounded border {{ $roleBadgeColor }}">
+                    {{ $userRole }} {{ $userBranch && $userBranch !== 'all' ? '('.$userBranch.')' : '' }}
+                </span>
+            </div>
             <svg class="w-3.5 h-3.5 text-gray-400 group-hover:text-white transition-transform duration-200 group-open:rotate-180" 
                  fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -31,13 +44,28 @@
         </summary>
 
         <!-- Dropdown Menu Card -->
-        <div class="absolute right-0 mt-2 w-56 bg-white rounded-xl border border-gray-200 shadow-xl py-2 z-50 text-gray-900 font-sans">
+        <div class="absolute right-0 mt-2 w-64 bg-white rounded-2xl border border-gray-200 shadow-2xl py-2 z-50 text-gray-900 font-sans">
             
             <!-- User Info Header -->
-            <div class="px-4 py-2.5 border-b border-gray-100">
-                <p class="text-xs font-bold text-[#111111] truncate">{{ $userName }}</p>
+            <div class="px-4 py-3 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl">
+                <div class="flex items-center justify-between gap-2">
+                    <p class="text-xs font-bold text-[#111111] truncate">{{ $userName }}</p>
+                    <span class="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-gray-200 text-gray-700">
+                        {{ $userRole }}
+                    </span>
+                </div>
                 <p class="text-[11px] text-gray-500 truncate font-normal mt-0.5">{{ $userEmail }}</p>
+                @if($userBranch)
+                    <p class="text-[10px] text-[#F97316] font-semibold mt-1 flex items-center gap-1">
+                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        </svg>
+                        Cabang: {{ $userBranch === 'all' ? 'Semua Cabang' : $userBranch }}
+                    </p>
+                @endif
             </div>
+
+
 
             <!-- Profile Settings Link -->
             <a href="{{ route('profile.index') }}" 

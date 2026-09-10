@@ -1,6 +1,7 @@
 @props(['product', 'view' => 'grid', 'selectedBranch' => null])
 
 @php
+    $role = session('user.role', 'customer');
     $imageUrl = isset($product['image']) && $product['image'] 
         ? (\Illuminate\Support\Str::startsWith($product['image'], ['http://', 'https://']) ? $product['image'] : asset($product['image']))
         : null;
@@ -10,7 +11,7 @@
 
     $detailRoute = Route::has('categories.products.show') 
         ? route('categories.products.show', ['category' => $catSlug, 'product' => $prodSlug]) 
-        : '#';
+        : route('products.show', $product['id']);
 
     // Determine stock status based on selected branch or general stock
     $stockStatus = 'Tersedia';
@@ -51,6 +52,9 @@
                     @if(isset($product['size']) && $product['size'])
                         <span class="text-[11px] font-semibold text-gray-400">&bull; {{ $product['size'] }}</span>
                     @endif
+                    @if(isset($product['sku']) && $product['sku'])
+                        <span class="text-[10px] font-mono text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{{ $product['sku'] }}</span>
+                    @endif
                 </div>
 
                 <a href="{{ $detailRoute }}" class="block font-extrabold text-[#111111] text-base hover:text-[#F97316] transition-colors line-clamp-1">
@@ -63,20 +67,35 @@
             </div>
         </div>
 
-        <div class="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-4 pt-4 sm:pt-0 border-t sm:border-t-0 border-gray-100">
+        <div class="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-3 pt-4 sm:pt-0 border-t sm:border-t-0 border-gray-100">
             <div class="font-extrabold text-xl text-[#111111]">
                 Rp {{ number_format($product['price'] ?? 0, 0, ',', '.') }}
             </div>
 
-            <a href="{{ $detailRoute }}" 
-               class="px-5 py-2.5 rounded-xl font-bold text-xs transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap bg-[#F97316] text-white hover:bg-orange-600 shadow-md shadow-orange-500/20 active:scale-95">
-                Lihat Detail
-            </a>
+            <div class="flex items-center gap-2">
+                @if($role === 'admin')
+                    <a href="{{ route('products.edit', $product['id']) }}" 
+                       class="px-3 py-2 rounded-xl font-bold text-xs bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition-colors">
+                        Edit
+                    </a>
+                    <form method="POST" action="{{ route('products.destroy', $product['id']) }}" onsubmit="return confirm('Yakin ingin menghapus produk ini?');" class="inline">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="px-3 py-2 rounded-xl font-bold text-xs bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition-colors">
+                            Hapus
+                        </button>
+                    </form>
+                @endif
+                <a href="{{ $detailRoute }}" 
+                   class="px-5 py-2 rounded-xl font-bold text-xs transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap bg-[#F97316] text-white hover:bg-orange-600 shadow-md shadow-orange-500/20 active:scale-95">
+                    Lihat Detail
+                </a>
+            </div>
         </div>
     </div>
 @else
     <!-- GRID VIEW CARD -->
-    <div class="group bg-white rounded-2xl border border-gray-200/80 overflow-hidden shadow-sm hover:shadow-xl hover:border-[#F97316]/40 transition-all duration-300 flex flex-col h-full transform hover:-translate-y-1">
+    <div class="group bg-white rounded-2xl border border-gray-200/80 overflow-hidden shadow-sm hover:shadow-xl hover:border-[#F97316]/40 transition-all duration-300 flex flex-col h-full transform hover:-translate-y-1 relative">
         
         <!-- Image Area -->
         <a href="{{ $detailRoute }}" class="h-44 sm:h-48 bg-gray-50 w-full relative overflow-hidden block">
@@ -94,6 +113,12 @@
             <div class="absolute top-3 left-3">
                 <x-status-badge :status="$stockStatus === 'Habis' ? 'out_of_stock' : ($stockStatus === 'Stok Terbatas' ? 'low_stock' : 'available')" />
             </div>
+
+            @if(isset($product['sku']) && $product['sku'])
+                <div class="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white font-mono text-[9px] px-2 py-0.5 rounded-md font-bold">
+                    {{ $product['sku'] }}
+                </div>
+            @endif
         </a>
 
         <!-- Content Area -->
@@ -111,10 +136,26 @@
                 </a>
             </div>
 
-            <div class="pt-3 border-t border-gray-100 space-y-3 mt-auto">
-                <div class="font-extrabold text-lg sm:text-xl text-[#111111]">
+            <div class="pt-3 border-t border-gray-100 space-y-2 mt-auto">
+                <div class="font-extrabold text-lg text-[#111111]">
                     Rp {{ number_format($product['price'] ?? 0, 0, ',', '.') }}
                 </div>
+
+                @if($role === 'admin')
+                    <div class="grid grid-cols-2 gap-1.5 pt-1">
+                        <a href="{{ route('products.edit', $product['id']) }}" 
+                           class="py-1.5 rounded-lg text-center font-bold text-[11px] bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition-colors">
+                            Edit
+                        </a>
+                        <form method="POST" action="{{ route('products.destroy', $product['id']) }}" onsubmit="return confirm('Hapus produk ini?');" class="inline">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="w-full py-1.5 rounded-lg text-center font-bold text-[11px] bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition-colors">
+                                Hapus
+                            </button>
+                        </form>
+                    </div>
+                @endif
 
                 <a href="{{ $detailRoute }}" 
                    class="w-full py-2.5 rounded-xl font-bold text-xs transition-all duration-200 flex items-center justify-center gap-2 bg-[#F97316] text-white hover:bg-orange-600 shadow-md shadow-orange-500/20 active:scale-95">

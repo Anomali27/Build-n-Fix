@@ -15,6 +15,7 @@ class CategoryController extends Controller
 
     public function index(Request $request)
     {
+        $role = session('user.role', 'customer');
         $selectedCategory = $request->get('category', 'all');
         $selectedBranches = (array) $request->get('branches', []);
         $location = $request->get('location');
@@ -30,6 +31,7 @@ class CategoryController extends Controller
         ], $sort);
 
         return view('categories.index', array_merge($result, [
+            'role' => $role,
             'selectedCategory' => $selectedCategory,
             'selectedBranches' => $selectedBranches,
             'location' => $location,
@@ -41,11 +43,21 @@ class CategoryController extends Controller
 
     public function create()
     {
-        return view('categories.create');
+        $role = session('user.role', 'customer');
+        if ($role !== 'admin') {
+            return redirect()->route('categories.index')->with('error', 'Hanya Admin yang dapat menambah kategori.');
+        }
+
+        return view('categories.create', ['role' => $role]);
     }
 
     public function store(Request $request)
     {
+        $role = session('user.role', 'customer');
+        if ($role !== 'admin') {
+            return redirect()->route('categories.index')->with('error', 'Hanya Admin yang dapat menyimpan kategori.');
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -63,6 +75,7 @@ class CategoryController extends Controller
 
     public function show($category, Request $request)
     {
+        $role = session('user.role', 'customer');
         $categoryData = $this->categoryService->getCategoryByIdOrSlug($category);
 
         if (! $categoryData) {
@@ -84,6 +97,7 @@ class CategoryController extends Controller
         ], $sort);
 
         return view('categories.show', array_merge($productResult, [
+            'role' => $role,
             'category' => $categoryData,
             'sort' => $sort,
             'view' => $view,
@@ -95,17 +109,30 @@ class CategoryController extends Controller
 
     public function edit($category)
     {
+        $role = session('user.role', 'customer');
+        if ($role !== 'admin') {
+            return redirect()->route('categories.index')->with('error', 'Hanya Admin yang dapat mengubah kategori.');
+        }
+
         $categoryData = $this->categoryService->getCategoryByIdOrSlug($category);
 
         if (! $categoryData) {
             return redirect()->route('categories.index')->with('error', 'Kategori tidak ditemukan.');
         }
 
-        return view('categories.edit', ['category' => $categoryData]);
+        return view('categories.edit', [
+            'role' => $role,
+            'category' => $categoryData,
+        ]);
     }
 
     public function update(Request $request, $category)
     {
+        $role = session('user.role', 'customer');
+        if ($role !== 'admin') {
+            return redirect()->route('categories.index')->with('error', 'Hanya Admin yang dapat mengubah kategori.');
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -127,6 +154,11 @@ class CategoryController extends Controller
 
     public function destroy($category)
     {
+        $role = session('user.role', 'customer');
+        if ($role !== 'admin') {
+            return redirect()->route('categories.index')->with('error', 'Hanya Admin yang dapat menghapus kategori.');
+        }
+
         $deleted = $this->categoryService->deleteCategory($category);
 
         if (! $deleted) {

@@ -208,19 +208,51 @@
         <!-- RIGHT COLUMN: PRODUCT INFORMATION -->
         <div class="lg:col-span-6 space-y-6">
             
-            <!-- 1. Category & Brand -->
-            <div class="flex items-center gap-2">
-                <a href="{{ route('categories.show', $category['slug'] ?? 'semen-mortar') }}" class="px-3 py-1 bg-orange-50 text-[#F97316] font-extrabold text-[10px] uppercase tracking-wider rounded-full border border-orange-100 hover:bg-orange-100 transition-colors">
-                    {{ $category['name'] ?? 'Semen & Mortar' }}
-                </a>
-                <span class="text-xs text-gray-400 font-semibold">•</span>
-                <span class="text-xs font-bold text-gray-500">Brand: <strong class="text-gray-800">{{ $product['brand'] }}</strong></span>
+            <!-- 1. Category, Brand & Admin Actions -->
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+                <div class="flex items-center gap-2">
+                    <a href="{{ route('categories.show', $category['slug'] ?? 'semen-mortar') }}" class="px-3 py-1 bg-orange-50 text-[#F97316] font-extrabold text-[10px] uppercase tracking-wider rounded-full border border-orange-100 hover:bg-orange-100 transition-colors">
+                        {{ $category['name'] ?? 'Semen & Mortar' }}
+                    </a>
+                    <span class="text-xs text-gray-400 font-semibold">•</span>
+                    <span class="text-xs font-bold text-gray-500">Brand: <strong class="text-gray-800">{{ $product['brand'] }}</strong></span>
+                </div>
+
+                @if(($role ?? session('user.role')) === 'admin')
+                    <div class="flex items-center gap-2">
+                        <a href="{{ route('products.edit', $product['id']) }}" 
+                           class="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-bold text-xs transition-colors">
+                            Edit Produk
+                        </a>
+                        <form method="POST" action="{{ route('products.destroy', $product['id']) }}" onsubmit="return confirm('Hapus produk ini?');" class="inline">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs transition-colors">
+                                Hapus
+                            </button>
+                        </form>
+                    </div>
+                @endif
             </div>
 
             <!-- 2. Nama produk bold dan besar -->
             <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#111111] tracking-tight leading-tight">
                 {{ $product['name'] }}
             </h1>
+
+            @if(isset($suppliers) && count($suppliers) > 0)
+                <!-- Supplier Info for Admin & Owner -->
+                <div class="p-3.5 bg-gray-50 rounded-2xl border border-gray-200/80">
+                    <p class="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Pemasok Resmi (Suppliers):</p>
+                    <div class="flex flex-wrap gap-2">
+                        @foreach($suppliers as $sup)
+                            <a href="{{ route('suppliers.show', $sup['id']) }}" class="px-2.5 py-1 rounded-lg bg-white border border-gray-200 text-xs font-bold text-gray-800 hover:border-[#F97316] transition-colors">
+                                🏢 {{ $sup['name'] }} <span class="text-gray-400 font-normal">({{ $sup['city'] }})</span>
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
 
             <!-- 3. SKU -->
             <p class="text-xs text-gray-400 font-semibold -mt-2">SKU: <span class="text-gray-600 font-mono">{{ $product['sku'] }}</span></p>
@@ -546,7 +578,7 @@
             </a>
         </div>
 
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5">
+        <div class="{{ in_array(($role ?? session('user.role')), ['admin', 'owner']) ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5' : 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5' }}">
             @forelse($relatedProducts as $relProduct)
                 <x-product-card :product="$relProduct" />
             @empty

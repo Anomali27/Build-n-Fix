@@ -3,18 +3,32 @@
 @section('content')
 <div class="container mx-auto px-4 lg:px-8 py-8"
      x-data="{
+         role: '{{ $role }}',
          activeTab: '{{ $activeTab }}',
          activeModal: {{ $selectedOrder ? 'true' : 'false' }},
          modalOrder: @js($selectedOrder),
          allOrders: @js($allOrders),
+         managementOrders: @js($managementOrders),
+         statusUpdateModal: false,
+         statusOrderNumber: '',
+         statusCurrentStatus: 'paid',
+         
          openOrderModal(orderNumber) {
-             const found = this.allOrders.find(o => o.order_number === orderNumber);
+             let found = this.allOrders.find(o => o.order_number === orderNumber);
+             if (!found) {
+                 found = this.managementOrders.find(o => o.order_number === orderNumber);
+             }
              if (found) {
                  this.modalOrder = found;
                  this.activeModal = true;
              } else {
-                 window.location.href = '{{ route("orders.index") }}/' + orderNumber;
+                 window.location.href = '{{ route("orders.index") }}?order=' + orderNumber;
              }
+         },
+         openStatusModal(orderNumber, currentStatus) {
+             this.statusOrderNumber = orderNumber;
+             this.statusCurrentStatus = currentStatus;
+             this.statusUpdateModal = true;
          },
          closeModal() {
              this.activeModal = false;
@@ -23,364 +37,445 @@
              return 'Rp ' + (amount || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
          }
      }">
-     
-    <!-- 1. BREADCRUMB -->
-    <nav class="flex items-center gap-2 text-xs font-semibold text-gray-500 mb-6">
-        <a href="{{ route('home') }}" class="hover:text-[#F97316] transition-colors">Home</a>
-        <span class="text-gray-400">&gt;</span>
-        <span class="text-[#F97316] font-bold">My Orders</span>
-    </nav>
 
-    <!-- 2. PAGE HEADER -->
-    <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-            <h1 class="text-2xl lg:text-3xl font-black text-[#111111] tracking-tight uppercase">
-                My Orders
-            </h1>
-            <p class="text-xs lg:text-sm text-gray-500 font-medium mt-1">
-                Track and manage all your Build n Fix orders in one place.
-            </p>
+    <!-- ──────────────────────────────────────────────────────────── -->
+    <!-- 1. ADMIN & OWNER ORDER MANAGEMENT TABLE -->
+    <!-- ──────────────────────────────────────────────────────────── -->
+    @if(in_array($role, ['admin', 'owner']))
+        <!-- Breadcrumb -->
+        <nav class="flex items-center gap-2 text-xs font-semibold text-gray-500 mb-6">
+            <a href="{{ route('dashboard') }}" class="hover:text-[#F97316] transition-colors">Dashboard</a>
+            <span class="text-gray-400">&gt;</span>
+            <span class="text-[#F97316] font-bold">Manajemen Pesanan</span>
+        </nav>
+
+        <!-- Flash messages -->
+        @if(session('success'))
+            <div class="mb-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center justify-between">
+                <span>{{ session('success') }}</span>
+            </div>
+        @endif
+
+        <!-- Page Header -->
+        <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="px-2.5 py-0.5 rounded-full {{ $role === 'admin' ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-100 text-purple-800' }} font-extrabold text-[11px] uppercase tracking-wider">
+                        {{ $role === 'admin' ? 'Admin Operasional Pesanan' : 'Owner Monitoring Pesanan' }}
+                    </span>
+                    <span class="text-xs text-gray-400">•</span>
+                    <span class="text-xs text-gray-500 font-semibold">Semua Transaksi Pelanggan</span>
+                </div>
+                <h1 class="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">
+                    Tabel Pesanan Masuk
+                </h1>
+                <p class="text-xs md:text-sm text-gray-500 mt-1">
+                    Pantau kode pesanan, nama pelanggan, rincian produk, metode pengiriman, cabang asal, dan perbarui status pesanan.
+                </p>
+            </div>
         </div>
 
-        <!-- Continue Shopping CTA -->
-        <a href="{{ route('home') }}" 
-           class="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-xl shadow-xs transition-all w-fit group">
-            <svg class="w-4 h-4 text-[#F97316] group-hover:rotate-12 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-            </svg>
-            <span>Lanjut Belanja</span>
-        </a>
-    </div>
-
-    <!-- PAYMENT SUCCESSFUL ALERT BANNER -->
-    @if(session('payment_success') || session('success'))
-        @php
-            $latestOrder = session('latest_order') ?? ($allOrders[0] ?? null);
-        @endphp
-        <div class="mb-8 bg-emerald-50 border border-emerald-200/80 rounded-3xl p-6 shadow-sm space-y-4 animate-in fade-in slide-in-from-top-3 duration-300">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-emerald-200/60 pb-4">
-                <div class="flex items-center gap-3.5">
-                    <div class="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black text-xl shadow-md shadow-emerald-600/20 shrink-0">
-                        ✓
-                    </div>
-                    <div>
-                        <h2 class="text-base font-black text-emerald-950">Payment Successful! Order Placed Successfully</h2>
-                        <p class="text-xs text-emerald-700 font-medium mt-0.5">
-                            Thank you! Your simulated payment was processed and your order has been generated.
-                        </p>
-                    </div>
+        <!-- Filter & Search Bar -->
+        <div class="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-xs mb-8 flex flex-col md:flex-row items-center justify-between gap-4">
+            <form method="GET" action="{{ route('orders.index') }}" class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto flex-1">
+                <div class="relative w-full sm:w-72">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </span>
+                    <input type="text" name="search" value="{{ $search }}" 
+                           placeholder="Cari no pesanan, customer..." 
+                           class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F97316]">
                 </div>
 
-                <span class="px-3 py-1 bg-emerald-600 text-white rounded-full text-xs font-black w-fit shrink-0">
-                    Payment Status: Paid
-                </span>
-            </div>
+                <select name="branch" onchange="this.form.submit()" 
+                        class="w-full sm:w-44 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F97316]">
+                    <option value="all" {{ $branchFilter === 'all' ? 'selected' : '' }}>Semua Cabang</option>
+                    <option value="Serdam" {{ $branchFilter === 'Serdam' ? 'selected' : '' }}>Cabang Serdam</option>
+                    <option value="Gajahmada" {{ $branchFilter === 'Gajahmada' ? 'selected' : '' }}>Cabang Gajahmada</option>
+                    <option value="Kota Baru" {{ $branchFilter === 'Kota Baru' ? 'selected' : '' }}>Cabang Kota Baru</option>
+                </select>
 
-            @if($latestOrder)
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-white/70 rounded-2xl p-4 border border-emerald-200/50">
-                    <div>
-                        <span class="text-gray-500 font-medium text-[10px] block uppercase tracking-wider">Order Number</span>
-                        <span class="font-extrabold text-gray-900 font-mono">{{ $latestOrder['order_number'] ?? 'BNF-20260902-001' }}</span>
-                    </div>
+                <select name="status" onchange="this.form.submit()" 
+                        class="w-full sm:w-44 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F97316]">
+                    <option value="all" {{ $statusFilter === 'all' ? 'selected' : '' }}>Semua Status</option>
+                    <option value="paid" {{ $statusFilter === 'paid' ? 'selected' : '' }}>Paid / Menunggu</option>
+                    <option value="ready_to_pick_up" {{ $statusFilter === 'ready_to_pick_up' ? 'selected' : '' }}>Siap Diambil</option>
+                    <option value="on_delivery" {{ $statusFilter === 'on_delivery' ? 'selected' : '' }}>Dalam Pengiriman</option>
+                    <option value="completed" {{ $statusFilter === 'completed' ? 'selected' : '' }}>Selesai</option>
+                </select>
 
-                    <div>
-                        <span class="text-gray-500 font-medium text-[10px] block uppercase tracking-wider">Branch</span>
-                        <span class="font-bold text-gray-900">Cabang {{ $latestOrder['branch_name'] ?? 'Serdam' }}</span>
-                    </div>
-
-                    <div>
-                        <span class="text-gray-500 font-medium text-[10px] block uppercase tracking-wider">Fulfillment</span>
-                        <span class="font-extrabold text-[#F97316]">
-                            {{ strtolower($latestOrder['fulfillment_method'] ?? 'pickup') === 'pickup' ? 'Pickup di Toko' : 'Delivery' }}
-                        </span>
-                    </div>
-
-                    <div>
-                        <span class="text-gray-500 font-medium text-[10px] block uppercase tracking-wider">Total Payment</span>
-                        <span class="font-black text-[#F97316]">
-                            Rp {{ number_format($latestOrder['total'] ?? 0, 0, ',', '.') }}
-                        </span>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-3 pt-1 flex-wrap">
-                    <button type="button" 
-                            @click="openOrderModal('{{ $latestOrder['order_number'] }}')" 
-                            class="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-extrabold shadow-sm transition-all">
-                        View Order Details
-                    </button>
-
-                    <a href="{{ route('orders.index', ['tab' => 'tracking']) }}" 
-                       class="px-4 py-2.5 bg-white border border-emerald-300 text-emerald-900 hover:bg-emerald-100 rounded-xl text-xs font-bold transition-all">
-                        Track Order Status
-                    </a>
-
-                    <a href="{{ route('home') }}" 
-                       class="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl text-xs font-bold transition-all">
-                        Continue Shopping
-                    </a>
-                </div>
-            @endif
-        </div>
-    @endif
-
-    <!-- 3. MAIN TABS NAVIGATION -->
-    <div class="flex items-center gap-2 overflow-x-auto pb-3 mb-6 scrollbar-none border-b border-gray-100">
-        <!-- Tab 1: Semua Pesanan -->
-        <a href="{{ route('orders.index', ['tab' => 'all']) }}" 
-           class="px-5 py-2.5 rounded-full text-xs font-extrabold transition-all duration-200 shrink-0 flex items-center gap-2 {{ $activeTab === 'all' ? 'bg-[#F97316] text-white shadow-md shadow-orange-500/20' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:text-gray-900' }}">
-            <span>Semua Pesanan</span>
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-black {{ $activeTab === 'all' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600' }}">
-                {{ count($allOrders) }}
-            </span>
-        </a>
-
-        <!-- Tab 2: Berhasil -->
-        <a href="{{ route('orders.index', ['tab' => 'success']) }}" 
-           class="px-5 py-2.5 rounded-full text-xs font-extrabold transition-all duration-200 shrink-0 flex items-center gap-2 {{ $activeTab === 'success' ? 'bg-[#F97316] text-white shadow-md shadow-orange-500/20' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:text-gray-900' }}">
-            <span>Berhasil</span>
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-black {{ $activeTab === 'success' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600' }}">
-                {{ count($successOrders) }}
-            </span>
-        </a>
-
-        <!-- Tab 3: Tracking -->
-        <a href="{{ route('orders.index', ['tab' => 'tracking']) }}" 
-           class="px-5 py-2.5 rounded-full text-xs font-extrabold transition-all duration-200 shrink-0 flex items-center gap-2 {{ $activeTab === 'tracking' ? 'bg-[#F97316] text-white shadow-md shadow-orange-500/20' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:text-gray-900' }}">
-            <span>Tracking</span>
-            @if(count($trackingOrders) > 0)
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-white/20 text-white animate-pulse">
-                    {{ count($trackingOrders) }}
-                </span>
-            @else
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-gray-100 text-gray-600">0</span>
-            @endif
-        </a>
-
-        <!-- Tab 4: Riwayat -->
-        <a href="{{ route('orders.index', ['tab' => 'history']) }}" 
-           class="px-5 py-2.5 rounded-full text-xs font-extrabold transition-all duration-200 shrink-0 flex items-center gap-2 {{ $activeTab === 'history' ? 'bg-[#F97316] text-white shadow-md shadow-orange-500/20' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:text-gray-900' }}">
-            <span>Riwayat</span>
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-black {{ $activeTab === 'history' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600' }}">
-                {{ count($historyOrders) }}
-            </span>
-        </a>
-    </div>
-
-    <!-- 4. SUB-FILTERS & SEARCH (For 'all' tab) -->
-    @if($activeTab === 'all')
-        <div class="bg-gray-50/60 p-4 rounded-2xl border border-gray-100 mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <!-- Filter Pills -->
-            <div class="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-                <span class="text-xs font-bold text-gray-400 mr-1 hidden sm:inline">Filter:</span>
-                @foreach(['all' => 'Semua', 'pickup' => 'Pickup', 'delivery' => 'Delivery', 'active' => 'Aktif', 'completed' => 'Selesai'] as $key => $label)
-                    <a href="{{ route('orders.index', ['tab' => 'all', 'filter' => $key, 'search' => $search]) }}" 
-                       class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all {{ $activeFilter === $key ? 'bg-gray-900 text-white shadow-xs' : 'bg-white text-gray-600 hover:bg-gray-200/60 border border-gray-200' }}">
-                        {{ $label }}
-                    </a>
-                @endforeach
-            </div>
-
-            <!-- Search Form -->
-            <form method="GET" action="{{ route('orders.index') }}" class="relative max-w-xs w-full">
-                <input type="hidden" name="tab" value="all">
-                <input type="hidden" name="filter" value="{{ $activeFilter }}">
-                <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                </span>
-                <input type="text" 
-                       name="search" 
-                       value="{{ $search }}" 
-                       placeholder="Cari nomor order..." 
-                       class="w-full bg-white text-xs text-gray-900 placeholder-gray-400 rounded-xl py-2 pl-9 pr-8 focus:outline-none focus:ring-2 focus:ring-[#F97316] border border-gray-200 shadow-2xs">
-                @if($search)
-                    <a href="{{ route('orders.index', ['tab' => 'all', 'filter' => $activeFilter]) }}" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-gray-400 hover:text-gray-600 text-xs">✕</a>
-                @endif
+                <button type="submit" class="px-4 py-2 bg-gray-900 text-white font-bold text-xs rounded-xl shadow-xs">
+                    Filter
+                </button>
             </form>
+
+            <div class="text-xs text-gray-500 font-semibold">
+                Total: <strong class="text-gray-900">{{ count($managementOrders) }}</strong> Pesanan
+            </div>
         </div>
-    @endif
 
-    <!-- 5. TAB CONTENT SECTIONS -->
-    @php
-        $displayOrders = match($activeTab) {
-            'success' => $successOrders,
-            'tracking' => $trackingOrders,
-            'history' => $historyOrders,
-            default => $allOrders,
-        };
+        <!-- Management Orders Table with all requested columns -->
+        <div class="bg-white rounded-3xl border border-gray-200/80 shadow-xs overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead>
+                        <tr class="bg-gray-50/80 border-b border-gray-200 text-gray-400 font-bold uppercase text-[10px]">
+                            <th class="py-4 px-5">Kode Pesanan</th>
+                            <th class="py-4 px-4">Nama Customer</th>
+                            <th class="py-4 px-4">Produk</th>
+                            <th class="py-4 px-3 text-center">Jumlah</th>
+                            <th class="py-4 px-4">Harga / Total</th>
+                            <th class="py-4 px-4">Metode</th>
+                            <th class="py-4 px-4">Cabang</th>
+                            <th class="py-4 px-4">Status</th>
+                            <th class="py-4 px-5 text-right">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @forelse($managementOrders as $ord)
+                            @php
+                                $itemsCount = 0;
+                                $productNames = [];
+                                foreach($ord['items'] ?? [] as $it) {
+                                    $itemsCount += ($it['quantity'] ?? 1);
+                                    $productNames[] = $it['product_name'] ?? 'Produk';
+                                }
+                                $st = $ord['order_status'] ?? 'paid';
+                                $stBadge = match($st) {
+                                    'paid' => 'bg-emerald-100 text-emerald-800 border-emerald-200',
+                                    'ready_to_pick_up' => 'bg-blue-100 text-blue-800 border-blue-200',
+                                    'on_delivery' => 'bg-amber-100 text-amber-800 border-amber-200',
+                                    'completed' => 'bg-gray-200 text-gray-800 border-gray-300',
+                                    default => 'bg-gray-100 text-gray-700'
+                                };
+                            @endphp
+                            <tr class="hover:bg-gray-50/80 transition-colors">
+                                <!-- 1. Kode Pesanan -->
+                                <td class="py-4 px-5 font-mono font-bold text-gray-900">
+                                    {{ $ord['order_number'] }}
+                                    <span class="block text-[10px] text-gray-400 font-sans font-normal">{{ date('d M Y H:i', strtotime($ord['created_at'])) }}</span>
+                                </td>
 
-        $emptyTitles = [
-            'all' => 'Belum ada pesanan.',
-            'success' => 'Belum ada pesanan yang berhasil.',
-            'tracking' => 'Belum ada pesanan yang sedang berjalan.',
-            'history' => 'Belum ada riwayat pesanan.',
-        ];
+                                <!-- 2. Nama Customer -->
+                                <td class="py-4 px-4">
+                                    <span class="font-extrabold text-gray-900 block">{{ $ord['customer_name'] }}</span>
+                                    <span class="text-[10px] text-gray-400">{{ $ord['customer_email'] }}</span>
+                                </td>
 
-        $emptyMessages = [
-            'all' => 'Anda belum memiliki transaksi pesanan di Build n Fix.',
-            'success' => 'Belum ada pesanan yang baru dikonfirmasi atau dibayar.',
-            'tracking' => 'Tidak ada pesanan aktif yang sedang dalam proses pengiriman atau pickup.',
-            'history' => 'Pesanan yang telah selesai dikirim atau diambil akan tampil di sini.',
-        ];
-    @endphp
+                                <!-- 3. Produk -->
+                                <td class="py-4 px-4 max-w-[200px]">
+                                    <span class="font-semibold text-gray-800 block truncate" title="{{ implode(', ', $productNames) }}">
+                                        {{ count($productNames) > 0 ? $productNames[0] : 'Material Bangunan' }}
+                                    </span>
+                                    @if(count($productNames) > 1)
+                                        <span class="text-[10px] text-[#F97316] font-bold">+{{ count($productNames) - 1 }} produk lainnya</span>
+                                    @endif
+                                </td>
 
-    <div class="space-y-4">
-        @forelse($displayOrders as $order)
-            <x-order-card :order="$order" />
-        @empty
-            <x-empty-state 
-                :title="$emptyTitles[$activeTab] ?? 'Belum ada pesanan.'"
-                :message="$emptyMessages[$activeTab] ?? 'Silakan lakukan pembelian produk bahan bangunan.'"
-                :actionUrl="route('home')"
-                :actionText="'Belanja Sekarang'"
-            />
-        @endforelse
-    </div>
+                                <!-- 4. Jumlah -->
+                                <td class="py-4 px-3 text-center font-bold text-gray-800">
+                                    {{ $itemsCount ?: 1 }} Item
+                                </td>
 
-    <!-- 6. ORDER DETAIL MODAL -->
-    <template x-if="activeModal && modalOrder">
-        <div class="fixed inset-0 z-50 overflow-y-auto" @keydown.escape.window="closeModal()">
-            <!-- Overlay Backdrop -->
-            <div class="fixed inset-0 bg-[#111111]/70 backdrop-blur-xs transition-opacity" @click="closeModal()"></div>
+                                <!-- 5. Harga / Total -->
+                                <td class="py-4 px-4 font-black text-gray-900">
+                                    Rp {{ number_format($ord['total'] ?? 0, 0, ',', '.') }}
+                                </td>
 
-            <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-6">
-                <div class="relative w-full max-w-3xl transform overflow-hidden rounded-3xl bg-white p-6 text-left align-middle shadow-2xl transition-all border border-gray-100 my-8">
-                    
-                    <!-- Modal Header -->
-                    <div class="flex items-center justify-between border-b border-gray-100 pb-4 mb-5">
-                        <div class="flex items-center gap-3">
-                            <h3 class="text-base font-black text-gray-900 tracking-tight">
-                                Order #<span x-text="modalOrder.order_number"></span>
-                            </h3>
-                            <span class="text-xs text-gray-400 font-semibold" x-text="modalOrder.created_at"></span>
+                                <!-- 6. Metode -->
+                                <td class="py-4 px-4">
+                                    <span class="px-2.5 py-1 rounded-md text-[11px] font-bold {{ ($ord['fulfillment_method'] ?? '') === 'delivery' ? 'bg-orange-50 text-[#F97316] border border-orange-100' : 'bg-blue-50 text-blue-700 border border-blue-100' }}">
+                                        {{ ($ord['fulfillment_method'] ?? '') === 'delivery' ? '🚚 Delivery' : '🏪 Ambil di Toko' }}
+                                    </span>
+                                </td>
+
+                                <!-- 7. Cabang -->
+                                <td class="py-4 px-4 font-bold text-gray-700">
+                                    {{ $ord['branch_name'] ?? 'Serdam' }}
+                                </td>
+
+                                <!-- 8. Status -->
+                                <td class="py-4 px-4">
+                                    <span class="px-2.5 py-1 rounded-full text-[10px] font-black border {{ $stBadge }}">
+                                        {{ ucfirst(str_replace('_', ' ', $st)) }}
+                                    </span>
+                                </td>
+
+                                <!-- 9. Aksi -->
+                                <td class="py-4 px-5 text-right">
+                                    <div class="flex items-center justify-end gap-1.5">
+                                        <button type="button" 
+                                                @click="openOrderModal('{{ $ord['order_number'] }}')" 
+                                                class="px-2.5 py-1.5 rounded-lg bg-gray-100 hover:bg-[#F97316] hover:text-white font-bold text-[11px] transition-all">
+                                            Detail
+                                        </button>
+                                        @if($role === 'admin')
+                                            <button type="button" 
+                                                    @click="openStatusModal('{{ $ord['order_number'] }}', '{{ $st }}')" 
+                                                    class="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-[11px] border border-emerald-200 transition-colors">
+                                                Update
+                                            </button>
+                                        @endif
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="9" class="py-12 text-center text-gray-400 text-xs">
+                                    Tidak ada data pesanan yang sesuai dengan filter.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Admin Update Status Modal -->
+        @if($role === 'admin')
+            <div x-show="statusUpdateModal" x-cloak 
+                 class="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+                <div @click.away="statusUpdateModal = false" 
+                     class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-gray-100">
+                    <div class="flex items-center justify-between pb-3 border-b border-gray-100 mb-4">
+                        <div>
+                            <h3 class="font-black text-base text-gray-900">Perbarui Status Pesanan</h3>
+                            <p class="text-xs font-mono text-gray-500" x-text="statusOrderNumber"></p>
                         </div>
-                        <button type="button" @click="closeModal()" class="rounded-xl p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-900 transition-colors">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        <button type="button" @click="statusUpdateModal = false" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
                     </div>
 
-                    <!-- Modal Body Content -->
-                    <div class="space-y-6 max-h-[75vh] overflow-y-auto pr-1 scrollbar-thin">
-                        
-                        <!-- Status Overview -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                            <div>
-                                <span class="text-[10px] font-extrabold uppercase text-gray-400 tracking-wider block">Status Pesanan</span>
-                                <div class="mt-1 flex items-center gap-2">
-                                    <span class="px-3 py-1 rounded-full text-xs font-black bg-[#F97316] text-white shadow-xs" x-text="modalOrder.order_status ? modalOrder.order_status.replace(/_/g, ' ').toUpperCase() : 'PAID'"></span>
-                                    <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">Payment: Paid</span>
-                                </div>
-                            </div>
-                            <div>
-                                <span class="text-[10px] font-extrabold uppercase text-gray-400 tracking-wider block">Metode Pemenuhan</span>
-                                <div class="mt-1 font-extrabold text-xs text-gray-900">
-                                    <span x-text="modalOrder.fulfillment_method === 'pickup' ? '🏪 Pickup di Toko (Gratis)' : '🚚 Delivery (Diantar ke Alamat)'"></span>
-                                </div>
-                            </div>
+                    <form method="POST" :action="'/orders/' + statusOrderNumber" class="space-y-4">
+                        @csrf
+                        @method('PUT')
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-2">Pilih Status Baru</label>
+                            <select name="order_status" x-model="statusCurrentStatus" 
+                                    class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F97316]">
+                                <option value="paid">Paid (Menunggu Diproses)</option>
+                                <option value="ready_to_pick_up">Siap Diambil di Toko (Pickup Ready)</option>
+                                <option value="on_delivery">Dalam Pengiriman (On Delivery)</option>
+                                <option value="completed">Selesai (Completed)</option>
+                            </select>
                         </div>
 
-                        <!-- Customer & Branch Info -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="bg-white border border-gray-100 p-4 rounded-2xl space-y-2">
-                                <h4 class="text-xs font-extrabold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-                                    <span>👤</span> Informasi Pemesan
-                                </h4>
-                                <div class="text-xs text-gray-600 space-y-1 pt-1">
-                                    <p><strong>Nama:</strong> <span x-text="modalOrder.customer_name || 'Customer'"></span></p>
-                                    <p><strong>Email:</strong> <span x-text="modalOrder.customer_email || 'customer@buildnfix.test'"></span></p>
-                                    <p><strong>Telepon:</strong> <span x-text="modalOrder.customer_phone || '081234567890'"></span></p>
-                                    <template x-if="modalOrder.fulfillment_method === 'delivery'">
-                                        <p class="pt-1 text-gray-700"><strong>Alamat Kirim:</strong> <span x-text="modalOrder.delivery_address || 'Jl. Ahmad Yani No. 123, Pontianak'"></span></p>
-                                    </template>
-                                </div>
-                            </div>
-
-                            <div class="bg-white border border-gray-100 p-4 rounded-2xl space-y-2">
-                                <h4 class="text-xs font-extrabold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-                                    <span>📍</span> Cabang Pengambilan / Stok
-                                </h4>
-                                <div class="text-xs text-gray-600 space-y-1 pt-1">
-                                    <p><strong>Cabang:</strong> <span class="font-extrabold text-gray-900" x-text="'Branch ' + (modalOrder.branch_name || 'Serdam')"></span></p>
-                                    <p><strong>Alamat Toko:</strong> <span x-text="modalOrder.branch_address || 'Jl. Sungai Raya Dalam No. 88, Pontianak'"></span></p>
-                                    <p class="text-[11px] text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-100 mt-2">
-                                        ⚡ *Satu transaksi hanya berasal dari 1 cabang untuk menjaga akurasi stok & layanan.
-                                    </p>
-                                </div>
-                            </div>
+                        <div class="pt-3 border-t border-gray-100 flex items-center justify-end gap-2">
+                            <button type="button" @click="statusUpdateModal = false" class="px-4 py-2 rounded-xl border border-gray-200 text-xs font-bold text-gray-700 hover:bg-gray-50">
+                                Batal
+                            </button>
+                            <button type="submit" class="px-5 py-2 rounded-xl bg-[#F97316] hover:bg-orange-600 text-white font-black text-xs shadow-md shadow-orange-500/20">
+                                Simpan Status
+                            </button>
                         </div>
+                    </form>
+                </div>
+            </div>
+        @endif
 
-                        <!-- Product Items List -->
-                        <div class="space-y-3">
-                            <h4 class="text-xs font-extrabold text-gray-900 uppercase tracking-wider">Produk Dipesan</h4>
-                            <div class="border border-gray-100 rounded-2xl overflow-hidden divide-y divide-gray-100">
-                                <template x-for="item in modalOrder.items" :key="item.product_id || item.sku">
-                                    <div class="p-3.5 flex items-center justify-between gap-4 bg-white">
-                                        <div class="flex items-center gap-3 min-w-0">
-                                            <img :src="item.image || 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=600'" 
-                                                 :alt="item.product_name" 
-                                                 class="w-12 h-12 object-cover rounded-xl border border-gray-100 shrink-0">
-                                            <div class="min-w-0">
-                                                <h5 class="font-extrabold text-xs text-gray-900 truncate" x-text="item.product_name"></h5>
-                                                <p class="text-[10px] text-gray-400 font-mono mt-0.5" x-text="'SKU: ' + (item.sku || 'SMN-001')"></p>
-                                            </div>
-                                        </div>
 
-                                        <div class="text-right shrink-0">
-                                            <span class="text-xs text-gray-500" x-text="item.quantity + ' Sak × ' + formatRupiah(item.unit_price)"></span>
-                                            <span class="block font-black text-xs text-[#F97316] mt-0.5" x-text="formatRupiah(item.subtotal)"></span>
-                                        </div>
-                                    </div>
-                                </template>
-                            </div>
+    <!-- ──────────────────────────────────────────────────────────── -->
+    <!-- 2. CUSTOMER ORDER CENTER (Existing Customer View) -->
+    <!-- ──────────────────────────────────────────────────────────── -->
+    @else
+        <!-- Breadcrumb -->
+        <nav class="flex items-center gap-2 text-xs font-semibold text-gray-500 mb-6">
+            <a href="{{ route('home') }}" class="hover:text-[#F97316] transition-colors">Home</a>
+            <span class="text-gray-400">&gt;</span>
+            <span class="text-[#F97316] font-bold">Pesanan Saya</span>
+        </nav>
+
+        <!-- Page Header -->
+        <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-2xl lg:text-3xl font-black text-[#111111] tracking-tight uppercase">
+                    Pesanan Saya
+                </h1>
+                <p class="text-xs lg:text-sm text-gray-500 font-medium mt-1">
+                    Lacak proses transaksi material bangunan dan riwayat pemesanan Anda.
+                </p>
+            </div>
+
+            <a href="{{ route('products.index') }}" 
+               class="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-xl shadow-xs transition-all w-fit">
+                <svg class="w-4 h-4 text-[#F97316]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+                <span>Lanjut Belanja</span>
+            </a>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-2 mb-6 border-b border-gray-200">
+            <a href="{{ route('orders.index', ['tab' => 'all']) }}" 
+               class="px-4 py-2 rounded-xl text-xs font-bold transition-all {{ $activeTab === 'all' ? 'bg-[#F97316] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100' }}">
+                Semua Pesanan ({{ count($allOrders) }})
+            </a>
+            <a href="{{ route('orders.index', ['tab' => 'success']) }}" 
+               class="px-4 py-2 rounded-xl text-xs font-bold transition-all {{ $activeTab === 'success' ? 'bg-[#F97316] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100' }}">
+                Pembayaran Sukses ({{ count($successOrders) }})
+            </a>
+            <a href="{{ route('orders.index', ['tab' => 'tracking']) }}" 
+               class="px-4 py-2 rounded-xl text-xs font-bold transition-all {{ $activeTab === 'tracking' ? 'bg-[#F97316] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100' }}">
+                Dalam Proses & Pelacakan ({{ count($trackingOrders) }})
+            </a>
+            <a href="{{ route('orders.index', ['tab' => 'history']) }}" 
+               class="px-4 py-2 rounded-xl text-xs font-bold transition-all {{ $activeTab === 'history' ? 'bg-[#F97316] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100' }}">
+                Riwayat Selesai ({{ count($historyOrders) }})
+            </a>
+        </div>
+
+        <!-- Orders List (Customer) -->
+        <div class="space-y-4">
+            @php
+                $displayOrders = match($activeTab) {
+                    'success' => $successOrders,
+                    'tracking' => $trackingOrders,
+                    'history' => $historyOrders,
+                    default => $allOrders,
+                };
+            @endphp
+
+            @forelse($displayOrders as $order)
+                <div class="bg-white rounded-3xl border border-gray-200/80 p-6 shadow-xs hover:shadow-md transition-all">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
+                        <div>
+                            <span class="font-mono font-black text-sm text-gray-900">{{ $order['order_number'] }}</span>
+                            <span class="text-xs text-gray-400 ml-2">{{ date('d M Y H:i', strtotime($order['created_at'])) }}</span>
                         </div>
-
-                        <!-- Payment & Order Summary -->
-                        <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-2">
-                            <div class="flex justify-between items-center text-xs text-gray-600">
-                                <span>Subtotal Produk</span>
-                                <span class="font-bold text-gray-900" x-text="formatRupiah(modalOrder.subtotal)"></span>
-                            </div>
-                            <div class="flex justify-between items-center text-xs text-gray-600">
-                                <span>Ongkos Kirim (Delivery Fee)</span>
-                                <span class="font-bold text-gray-900" x-text="formatRupiah(modalOrder.delivery_fee)"></span>
-                            </div>
-                            <div class="flex justify-between items-center pt-2 border-t border-gray-200 text-sm font-black text-gray-900">
-                                <span>Total Tagihan</span>
-                                <span class="text-base text-[#F97316]" x-text="formatRupiah(modalOrder.total)"></span>
-                            </div>
+                        <div class="flex items-center gap-2">
+                            <span class="px-3 py-1 rounded-full text-[11px] font-extrabold bg-emerald-100 text-emerald-800">
+                                {{ ucfirst(str_replace('_', ' ', $order['order_status'] ?? 'paid')) }}
+                            </span>
                         </div>
-
-                        <!-- Tracking Timeline -->
-                        <div class="space-y-3 pt-2">
-                            <h4 class="text-xs font-extrabold text-gray-900 uppercase tracking-wider">Tracking Timeline</h4>
-                            <template x-if="modalOrder.timeline">
-                                <x-tracking-timeline 
-                                    :timeline="$selectedOrder['timeline'] ?? []" 
-                                    :fulfillmentMethod="$selectedOrder['fulfillment_method'] ?? 'pickup'" 
-                                    :branchName="$selectedOrder['branch_name'] ?? 'Serdam'" 
-                                    :deliveryAddress="$selectedOrder['delivery_address'] ?? null" 
-                                />
-                            </template>
-                        </div>
-
                     </div>
 
-                    <!-- Modal Footer Actions -->
-                    <div class="mt-6 flex justify-end gap-3 border-t border-gray-100 pt-4">
-                        <button type="button" @click="closeModal()" class="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl text-xs font-bold transition-colors">
-                            Tutup
-                        </button>
-                        <a href="{{ route('home') }}" class="px-5 py-2.5 bg-[#F97316] hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-orange-500/20">
-                            Belanja Lagi
-                        </a>
+                    <div class="py-4 space-y-3">
+                        @foreach($order['items'] ?? [] as $it)
+                            <div class="flex items-center justify-between gap-4">
+                                <div class="flex items-center gap-3">
+                                    <img src="{{ $it['image'] ?? 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=600' }}" 
+                                         class="w-12 h-12 rounded-xl object-cover border border-gray-100">
+                                    <div>
+                                        <h4 class="font-extrabold text-xs text-gray-900">{{ $it['product_name'] }}</h4>
+                                        <p class="text-[11px] text-gray-400">{{ $it['quantity'] }} × Rp {{ number_format($it['unit_price'], 0, ',', '.') }}</p>
+                                    </div>
+                                </div>
+                                <span class="font-black text-xs text-gray-900">
+                                    Rp {{ number_format($it['subtotal'], 0, ',', '.') }}
+                                </span>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    <div class="pt-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <span class="text-xs text-gray-500 font-semibold">Cabang: <strong class="text-gray-900">{{ $order['branch_name'] }}</strong></span>
+                        </div>
+                        <div class="flex items-center gap-4 justify-between sm:justify-end">
+                            <div>
+                                <span class="text-[11px] text-gray-400 block sm:text-right">Total Pembayaran:</span>
+                                <span class="text-base font-black text-[#F97316]">
+                                    Rp {{ number_format($order['total'], 0, ',', '.') }}
+                                </span>
+                            </div>
+                            <button type="button" 
+                                    @click="openOrderModal('{{ $order['order_number'] }}')" 
+                                    class="px-4 py-2 rounded-xl bg-gray-900 hover:bg-black text-white font-bold text-xs shadow-xs transition-all">
+                                Detail & Pelacakan
+                            </button>
+                        </div>
                     </div>
                 </div>
+            @empty
+                <div class="bg-white p-12 rounded-3xl border border-gray-200 text-center space-y-3">
+                    <p class="text-sm font-bold text-gray-500">Belum ada pesanan pada kategori ini.</p>
+                    <a href="{{ route('products.index') }}" class="inline-block px-5 py-2.5 bg-[#F97316] text-white rounded-xl font-bold text-xs">
+                        Mulai Belanja Sekarang
+                    </a>
+                </div>
+            @endforelse
+        </div>
+    @endif
+
+    <!-- ──────────────────────────────────────────────────────────── -->
+    <!-- 3. SHARED ORDER DETAIL POPUP MODAL (Alpine.js) -->
+    <!-- ──────────────────────────────────────────────────────────── -->
+    <template x-if="activeModal && modalOrder">
+        <div class="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div @click.away="closeModal()" 
+                 class="bg-white rounded-3xl max-w-2xl w-full p-6 md:p-8 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in duration-200">
+                
+                <div class="flex items-center justify-between pb-4 border-b border-gray-100 mb-6">
+                    <div>
+                        <span class="text-[10px] font-mono font-bold text-[#F97316] uppercase tracking-wider block">Rincian Faktur Pesanan</span>
+                        <h3 class="font-black text-xl text-gray-900 mt-0.5" x-text="modalOrder.order_number"></h3>
+                    </div>
+                    <button type="button" @click="closeModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Modal Info Grid -->
+                <div class="grid grid-cols-2 gap-4 text-xs mb-6">
+                    <div class="p-3 bg-gray-50 rounded-2xl border border-gray-100">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase block">Customer</span>
+                        <span class="font-extrabold text-gray-900 mt-0.5 block" x-text="modalOrder.customer_name"></span>
+                        <span class="text-[11px] text-gray-500" x-text="modalOrder.customer_email"></span>
+                    </div>
+                    <div class="p-3 bg-gray-50 rounded-2xl border border-gray-100">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase block">Cabang Pelayanan</span>
+                        <span class="font-extrabold text-gray-900 mt-0.5 block" x-text="modalOrder.branch_name"></span>
+                        <span class="text-[11px] text-gray-500" x-text="modalOrder.fulfillment_method === 'delivery' ? 'Pengiriman Armada Proyek' : 'Ambil di Cabang'"></span>
+                    </div>
+                </div>
+
+                <!-- Products Table in Modal -->
+                <div class="space-y-3 mb-6">
+                    <h4 class="text-xs font-extrabold text-gray-900 uppercase">Item yang Dipesan</h4>
+                    <div class="border border-gray-100 rounded-2xl overflow-hidden divide-y divide-gray-100">
+                        <template x-for="item in (modalOrder.items || [])" :key="item.product_name">
+                            <div class="p-3 flex items-center justify-between gap-4">
+                                <div class="flex items-center gap-3">
+                                    <img :src="item.image || 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=600'" 
+                                         class="w-10 h-10 rounded-xl object-cover bg-gray-50">
+                                    <div>
+                                        <p class="font-extrabold text-xs text-gray-900" x-text="item.product_name"></p>
+                                        <p class="text-[10px] text-gray-400 font-mono" x-text="'Qty: ' + item.quantity + ' × ' + formatRupiah(item.unit_price)"></p>
+                                    </div>
+                                </div>
+                                <span class="font-black text-xs text-gray-900" x-text="formatRupiah(item.subtotal)"></span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Total Box -->
+                <div class="p-4 bg-orange-50/60 rounded-2xl border border-orange-100 flex items-center justify-between">
+                    <div>
+                        <span class="text-xs text-gray-600 font-semibold">Total Tagihan:</span>
+                        <p class="text-lg font-black text-[#F97316]" x-text="formatRupiah(modalOrder.total)"></p>
+                    </div>
+                    <span class="px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800" x-text="'Status: ' + (modalOrder.order_status || 'paid')"></span>
+                </div>
+
+                <div class="mt-6 pt-4 border-t border-gray-100 flex justify-end">
+                    <button type="button" @click="closeModal()" class="px-5 py-2.5 rounded-xl bg-gray-900 text-white font-bold text-xs">
+                        Tutup
+                    </button>
+                </div>
+
             </div>
         </div>
     </template>
+
 </div>
 @endsection

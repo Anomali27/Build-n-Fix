@@ -142,17 +142,6 @@ class OrderRepositories
         ],
     ];
 
-    /**
-     * Get all orders (static mock + session orders).
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    public static function all(): array
-    {
-        $sessionOrders = Session::get('session_orders', []);
-
-        return array_merge(static::$orders, $sessionOrders);
-    }
 
     /**
      * Get orders for specific user ID.
@@ -252,5 +241,50 @@ class OrderRepositories
         Session::put('session_orders', $sessionOrders);
 
         return $newOrder;
+    }
+
+    /**
+     * Update order status in session overrides.
+     */
+    public static function updateStatus(string $identifier, string $orderStatus, ?string $paymentStatus = null): bool
+    {
+        $order = static::find($identifier);
+        if (! $order) {
+            return false;
+        }
+
+        $orderNum = $order['order_number'];
+        $overrides = Session::get('order_overrides', []);
+
+        $updateData = ['order_status' => $orderStatus];
+        if ($paymentStatus !== null) {
+            $updateData['payment_status'] = $paymentStatus;
+        }
+
+        $overrides[$orderNum] = array_merge($order, $updateData);
+        Session::put('order_overrides', $overrides);
+
+        return true;
+    }
+
+    /**
+     * Override all to apply order_overrides.
+     */
+    public static function all(): array
+    {
+        $sessionOrders = Session::get('session_orders', []);
+        $all = array_merge(static::$orders, $sessionOrders);
+        $overrides = Session::get('order_overrides', []);
+
+        if (! empty($overrides)) {
+            foreach ($all as &$ord) {
+                $num = $ord['order_number'] ?? '';
+                if (isset($overrides[$num])) {
+                    $ord = array_merge($ord, $overrides[$num]);
+                }
+            }
+        }
+
+        return $all;
     }
 }
