@@ -4,14 +4,14 @@ namespace App\Repositories;
 
 use Illuminate\Support\Facades\Session;
 
-class PaymentRepositories
+class PaymentRepository
 {
     /**
      * Get all payment transactions derived from orders + session overrides.
      */
     public static function getAll(): array
     {
-        $orders = OrderRepositories::all();
+        $orders = OrderRepository::all();
         $overrides = Session::get('payment_overrides', []);
 
         $payments = [];

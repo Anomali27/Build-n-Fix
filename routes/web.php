@@ -15,7 +15,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\StockMovementController;
 use App\Http\Controllers\SupplierController;
-use App\Repositories\UserRepositories;
+use App\Repositories\UserRepository;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 

@@ -5,7 +5,7 @@ namespace App\Repositories;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 
-class ProductRepositories
+class ProductRepository
 {
     public static function getRawDefaultList(): array
     {
@@ -2273,19 +2273,19 @@ class ProductRepositories
 
         // Initialize default stock for all 3 branches
         if (isset($data['stock_serdam'])) {
-            BranchStockRepositories::setStock($nextId, 1, (int) $data['stock_serdam']);
+            BranchStockRepository::setStock($nextId, 1, (int) $data['stock_serdam']);
         } else {
-            BranchStockRepositories::setStock($nextId, 1, 50);
+            BranchStockRepository::setStock($nextId, 1, 50);
         }
         if (isset($data['stock_gajahmada'])) {
-            BranchStockRepositories::setStock($nextId, 2, (int) $data['stock_gajahmada']);
+            BranchStockRepository::setStock($nextId, 2, (int) $data['stock_gajahmada']);
         } else {
-            BranchStockRepositories::setStock($nextId, 2, 40);
+            BranchStockRepository::setStock($nextId, 2, 40);
         }
         if (isset($data['stock_kotabaru'])) {
-            BranchStockRepositories::setStock($nextId, 3, (int) $data['stock_kotabaru']);
+            BranchStockRepository::setStock($nextId, 3, (int) $data['stock_kotabaru']);
         } else {
-            BranchStockRepositories::setStock($nextId, 3, 30);
+            BranchStockRepository::setStock($nextId, 3, 30);
         }
 
         return $newProduct;
