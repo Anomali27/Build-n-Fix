@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Repositories\UserRepository;
+use App\Repositories\UserRepositories;
 use Illuminate\Auth\GenericUser;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
@@ -16,7 +16,7 @@ class AuthService
      */
     public function attempt(string $email, string $password): array
     {
-        $user = UserRepository::authenticate($email, $password);
+        $user = UserRepositories::authenticate($email, $password);
 
         if (! $user) {
             return [
@@ -43,7 +43,7 @@ class AuthService
      */
     public function registerCustomer(array $data): array
     {
-        $result = UserRepository::registerCustomer($data);
+        $result = UserRepositories::registerCustomer($data);
 
         if (! $result['success']) {
             return $result;

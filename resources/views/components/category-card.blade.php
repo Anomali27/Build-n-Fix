@@ -1,18 +1,16 @@
 @props(['category', 'view' => 'grid'])
 
 @php
-    $imageUrl = isset($category['image']) && $category['image']
-        ? (\Illuminate\Support\Str::startsWith($category['image'], ['http://', 'https://'])
-            ? $category['image']
-            : asset($category['image']))
-        : asset('/images/categories/default.jpg');
+    $imageUrl = isset($category['image']) && $category['image'] 
+        ? (\Illuminate\Support\Str::startsWith($category['image'], ['http://', 'https://']) ? $category['image'] : asset($category['image']))
+        : null;
 
     $catSlug = $category['slug'] ?? ($category['id'] ?? 1);
-    $productRoute = Route::has('categories.show')
-        ? route('categories.show', $catSlug)
+    $productRoute = Route::has('categories.show') 
+        ? route('categories.show', $catSlug) 
         : '#';
     
-    $countText = isset($category['count_label'])
+    $countText = isset($category['count_label']) 
         ? str_replace(['Categories', 'categories'], 'Produk', $category['count_label']) 
         : (($category['count'] ?? 0) . ' Produk');
     $status = $category['status'] ?? 'active';

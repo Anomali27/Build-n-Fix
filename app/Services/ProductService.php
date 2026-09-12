@@ -2,27 +2,27 @@
 
 namespace App\Services;
 
-use App\Repositories\BranchRepository;
-use App\Repositories\BranchStockRepository;
-use App\Repositories\CategoryRepository;
-use App\Repositories\ProductRepository;
+use App\Repositories\BranchRepositories;
+use App\Repositories\BranchStockRepositories;
+use App\Repositories\CategoryRepositories;
+use App\Repositories\ProductRepositories;
 use Illuminate\Support\Str;
 
 class ProductService
 {
     public function getAllProducts(): array
     {
-        return ProductRepository::getAll();
+        return ProductRepositories::getAll();
     }
 
     public function getFeaturedProducts(int $limit = 4): array
     {
-        return ProductRepository::getFeatured();
+        return ProductRepositories::getFeatured();
     }
 
     public function getProductByIdOrSlug($idOrSlug): ?array
     {
-        $products = ProductRepository::getAll();
+        $products = ProductRepositories::getAll();
         $strTarget = strtolower((string) $idOrSlug);
 
         foreach ($products as $product) {
@@ -42,7 +42,7 @@ class ProductService
 
     public function getCategoryBySlugOrId($categorySlugOrId): ?array
     {
-        $categories = CategoryRepository::getAll();
+        $categories = CategoryRepositories::getAll();
         $target = strtolower((string) $categorySlugOrId);
 
         foreach ($categories as $cat) {
@@ -95,8 +95,8 @@ class ProductService
 
     public function getBranchStocksForProduct(int $productId): array
     {
-        $branches = BranchRepository::getAll();
-        $stockRecords = BranchStockRepository::getForProduct($productId);
+        $branches = BranchRepositories::getAll();
+        $stockRecords = BranchStockRepositories::getForProduct($productId);
 
         $result = [];
         foreach ($branches as $branch) {
@@ -134,7 +134,7 @@ class ProductService
 
     public function getRelatedProducts(int $categoryId, int $currentProductId, int $limit = 5): array
     {
-        $allProducts = ProductRepository::getAll();
+        $allProducts = ProductRepositories::getAll();
 
         // Filter products belonging ONLY to the same category_id, excluding current product
         $related = array_filter($allProducts, function ($p) use ($categoryId, $currentProductId) {
@@ -146,7 +146,7 @@ class ProductService
 
     public function getProductCategory(int $categoryId): ?array
     {
-        $categories = CategoryRepository::getAll();
+        $categories = CategoryRepositories::getAll();
         foreach ($categories as $cat) {
             if ((int) $cat['id'] === $categoryId) {
                 return $cat;
@@ -158,9 +158,9 @@ class ProductService
 
     public function getFilteredProducts(array $filters = [], string $sort = 'terpopuler'): array
     {
-        $allProducts = ProductRepository::getAll();
-        $allCategories = CategoryRepository::getAll();
-        $allBranches = BranchRepository::getAll();
+        $allProducts = ProductRepositories::getAll();
+        $allCategories = CategoryRepositories::getAll();
+        $allBranches = BranchRepositories::getAll();
 
         // 1. Determine min and max price bounds across dataset
         $prices = array_column($allProducts, 'price');
@@ -212,9 +212,9 @@ class ProductService
         if (! empty($filters['branches']) && is_array($filters['branches'])) {
             $selectedBranches = array_map('strtolower', $filters['branches']);
             $filtered = array_filter($filtered, function ($p) use ($selectedBranches) {
-                $stocks = BranchStockRepository::getForProduct($p['id']);
+                $stocks = BranchStockRepositories::getForProduct($p['id']);
                 foreach ($stocks as $s) {
-                    $branch = array_values(array_filter(BranchRepository::getAll(), fn ($b) => $b['id'] === $s['branch_id']))[0] ?? null;
+                    $branch = array_values(array_filter(BranchRepositories::getAll(), fn ($b) => $b['id'] === $s['branch_id']))[0] ?? null;
                     if ($branch && in_array(strtolower($branch['name']), $selectedBranches) && $s['stock'] > 0) {
                         return true;
                     }
@@ -291,7 +291,7 @@ class ProductService
         $sidebarBranches = array_map(function ($branch) use ($allProducts) {
             $bId = $branch['id'];
             $matchingCount = count(array_filter($allProducts, function ($p) use ($bId) {
-                $stocks = BranchStockRepository::getForProduct($p['id']);
+                $stocks = BranchStockRepositories::getForProduct($p['id']);
                 foreach ($stocks as $s) {
                     if ($s['branch_id'] === $bId && $s['stock'] > 0) {
                         return true;

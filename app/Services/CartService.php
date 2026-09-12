@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
-use App\Repositories\BranchRepository;
-use App\Repositories\BranchStockRepository;
-use App\Repositories\ProductRepository;
+use App\Repositories\BranchRepositories;
+use App\Repositories\BranchStockRepositories;
+use App\Repositories\ProductRepositories;
 use Illuminate\Support\Facades\Session;
 
 class CartService
@@ -34,17 +34,17 @@ class CartService
         $hasStockErrors = false;
 
         foreach ($rawCart['items'] ?? [] as $productId => $itemData) {
-            $product = ProductRepository::findById((int) $productId);
+            $product = ProductRepositories::findById((int) $productId);
             if (! $product) {
                 continue;
             }
 
             $itemBranchId = (int) ($itemData['branch_id'] ?? $branchId ?? 1);
-            $itemBranch = BranchRepository::findById($itemBranchId) ?? BranchRepository::findById(1);
+            $itemBranch = BranchRepositories::findById($itemBranchId) ?? BranchRepositories::findById(1);
             $itemBranchName = $itemBranch['name'] ?? 'Serdam';
 
-            $stock = BranchStockRepository::getStock($product['id'], $itemBranchId);
-            $stockStatus = BranchStockRepository::getStockStatus($stock);
+            $stock = BranchStockRepositories::getStock($product['id'], $itemBranchId);
+            $stockStatus = BranchStockRepositories::getStockStatus($stock);
 
             $quantity = (int) ($itemData['quantity'] ?? 1);
             $unitPrice = (int) ($product['price'] ?? 0);
@@ -112,7 +112,7 @@ class CartService
      */
     public function addProduct(int $productId, int $quantity = 1, int|string $branch = 1, bool $force = false): array
     {
-        $product = ProductRepository::findById($productId);
+        $product = ProductRepositories::findById($productId);
         if (! $product) {
             return [
                 'success' => false,
@@ -122,11 +122,11 @@ class CartService
 
         // Resolve branch ID & Name
         $targetBranch = is_numeric($branch)
-            ? BranchRepository::findById((int) $branch)
-            : BranchRepository::findByName((string) $branch);
+            ? BranchRepositories::findById((int) $branch)
+            : BranchRepositories::findByName((string) $branch);
 
         if (! $targetBranch) {
-            $targetBranch = BranchRepository::findById(1); // Default Serdam
+            $targetBranch = BranchRepositories::findById(1); // Default Serdam
         }
 
         $targetBranchId = (int) $targetBranch['id'];
@@ -144,7 +144,7 @@ class CartService
         // ONE BRANCH PER TRANSACTION BUSINESS RULE
         if (! empty($existingItems) && $currentCartBranchId !== null && (int) $currentCartBranchId !== $targetBranchId) {
             if (! $force) {
-                $existingBranchObj = BranchRepository::findById((int) $currentCartBranchId);
+                $existingBranchObj = BranchRepositories::findById((int) $currentCartBranchId);
                 $existingBranchName = $existingBranchObj['name'] ?? 'Branch '.$currentCartBranchId;
 
                 return [
@@ -169,7 +169,7 @@ class CartService
         $currentQtyInCart = (int) ($existingItems[$productId]['quantity'] ?? 0);
         $newQty = $currentQtyInCart + $quantity;
 
-        $availableStock = BranchStockRepository::getStock($productId, $targetBranchId);
+        $availableStock = BranchStockRepositories::getStock($productId, $targetBranchId);
 
         if ($newQty > $availableStock) {
             return [
@@ -224,7 +224,7 @@ class CartService
         }
 
         $branchId = (int) ($cart['items'][$productId]['branch_id'] ?? $cart['branch_id'] ?? 1);
-        $availableStock = BranchStockRepository::getStock($productId, $branchId);
+        $availableStock = BranchStockRepositories::getStock($productId, $branchId);
 
         if ($quantity > $availableStock) {
             return [

@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Repositories\BranchStockRepository;
-use App\Repositories\CategoryRepository;
-use App\Repositories\ProductRepository;
-use App\Repositories\StockMovementRepository;
+use App\Repositories\BranchStockRepositories;
+use App\Repositories\CategoryRepositories;
+use App\Repositories\ProductRepositories;
+use App\Repositories\StockMovementRepositories;
 use Illuminate\Http\Request;
 
 class StockController extends Controller
@@ -21,8 +21,8 @@ class StockController extends Controller
             return redirect()->route('products.index')->with('info', 'Ketersediaan stok dapat dilihat langsung pada setiap kartu produk.');
         }
 
-        $categories = CategoryRepository::getAll();
-        $stockMatrix = BranchStockRepository::getCategoryProductStockMatrix($search, $selectedCategory);
+        $categories = CategoryRepositories::getAll();
+        $stockMatrix = BranchStockRepositories::getCategoryProductStockMatrix($search, $selectedCategory);
 
         // Group matrix by category for beautiful categorized presentation
         $groupedStocks = [];
@@ -82,12 +82,12 @@ class StockController extends Controller
         $branchNames = [1 => 'Serdam', 2 => 'Gajahmada', 3 => 'Kota Baru'];
         $branchName = $branchNames[$branchId] ?? 'Serdam';
 
-        $product = ProductRepository::find($productId);
+        $product = ProductRepositories::find($productId);
         $productName = $product['name'] ?? 'Produk';
         $productSku = $product['sku'] ?? 'SKU-000';
         $categoryName = $product['category'] ?? 'Umum';
 
-        $previousStock = BranchStockRepository::getStock($productId, $branchId);
+        $previousStock = BranchStockRepositories::getStock($productId, $branchId);
         $newStock = $previousStock;
         $movementType = 'adjustment';
         $movementQty = $qty;
@@ -106,10 +106,10 @@ class StockController extends Controller
             $movementQty = $newStock - $previousStock;
         }
 
-        BranchStockRepository::setStock($productId, $branchId, $newStock);
+        BranchStockRepositories::setStock($productId, $branchId, $newStock);
 
         // Record stock movement log
-        StockMovementRepository::record([
+        StockMovementRepositories::record([
             'product_id' => $productId,
             'product_name' => $productName,
             'product_sku' => $productSku,
