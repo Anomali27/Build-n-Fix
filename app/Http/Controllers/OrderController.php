@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Repositories\OrderRepositories;
+use App\Repositories\OrderRepository;
 use App\Services\OrderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -46,7 +46,7 @@ class OrderController extends Controller
         }
 
         // Admin & Owner Management dataset
-        $managementOrders = OrderRepositories::all();
+        $managementOrders = OrderRepository::all();
 
         if ($branchFilter !== 'all') {
             $managementOrders = array_filter($managementOrders, function ($o) use ($branchFilter) {
@@ -138,7 +138,7 @@ class OrderController extends Controller
             'trackingOrders' => [],
             'historyOrders' => [],
             'selectedOrder' => $order,
-            'managementOrders' => OrderRepositories::all(),
+            'managementOrders' => OrderRepository::all(),
         ]);
     }
 
@@ -155,7 +155,7 @@ class OrderController extends Controller
         $status = $request->input('order_status');
         $paymentStatus = $request->input('payment_status');
 
-        OrderRepositories::updateStatus($orderNumber, $status, $paymentStatus);
+        OrderRepository::updateStatus($orderNumber, $status, $paymentStatus);
 
         return redirect()->route('orders.index')->with('success', 'Status pesanan '.$orderNumber.' berhasil diperbarui.');
     }
