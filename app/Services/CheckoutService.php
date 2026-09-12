@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Repositories\BranchRepositories;
-use App\Repositories\OrderRepositories;
+use App\Repositories\BranchRepository;
+use App\Repositories\OrderRepository;
 use Illuminate\Support\Facades\Session;
 
 class CheckoutService
@@ -34,7 +34,7 @@ class CheckoutService
 
         // 2. Branch Confirmation (One Branch Per Transaction)
         $branchId = (int) ($cart['branch_id'] ?? 1);
-        $branchObj = BranchRepositories::findById($branchId) ?? BranchRepositories::findById(1);
+        $branchObj = BranchRepository::findById($branchId) ?? BranchRepository::findById(1);
         $branch = [
             'id' => $branchObj['id'] ?? 1,
             'name' => $branchObj['name'] ?? 'Serdam',
@@ -299,7 +299,7 @@ class CheckoutService
             ]));
         }
 
-        $branchObj = BranchRepositories::findById((int) $checkoutData['branch']['id']) ?? BranchRepositories::findById(1);
+        $branchObj = BranchRepository::findById((int) $checkoutData['branch']['id']) ?? BranchRepository::findById(1);
 
         $orderData = [
             'user_id' => $userId,
@@ -320,7 +320,7 @@ class CheckoutService
             'items' => $items,
         ];
 
-        $order = OrderRepositories::create($orderData);
+        $order = OrderRepository::create($orderData);
 
         // Clear cart and checkout session
         $this->cartService->clearCart();

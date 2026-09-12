@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Repositories\UserRepositories;
+use App\Repositories\UserRepository;
 use Illuminate\Support\Facades\Session;
 
 class ProfileService
@@ -20,7 +20,7 @@ class ProfileService
         }
 
         $userId = (int) ($sessionUser['user_id'] ?? $sessionUser['id'] ?? 0);
-        $userData = UserRepositories::find($userId);
+        $userData = UserRepository::find($userId);
 
         if (! $userData) {
             return [
@@ -67,7 +67,7 @@ class ProfileService
             ];
         }
 
-        UserRepositories::updateName((int) $profile['user_id'], $name);
+        UserRepository::updateName((int) $profile['user_id'], $name);
 
         return [
             'success' => true,
@@ -102,7 +102,7 @@ class ProfileService
             ];
         }
 
-        if (! UserRepositories::verifyPassword((int) $profile['user_id'], $currentPassword)) {
+        if (! UserRepository::verifyPassword((int) $profile['user_id'], $currentPassword)) {
             return [
                 'success' => false,
                 'message' => 'The current password you entered is incorrect.',
@@ -123,7 +123,7 @@ class ProfileService
             ];
         }
 
-        UserRepositories::updatePassword((int) $profile['user_id'], $newPassword);
+        UserRepository::updatePassword((int) $profile['user_id'], $newPassword);
 
         return [
             'success' => true,
