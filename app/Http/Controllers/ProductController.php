@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Repositories\CategoryRepositories;
-use App\Repositories\ProductRepositories;
-use App\Repositories\SupplierRepositories;
+use App\Repositories\CategoryRepository;
+use App\Repositories\ProductRepository;
+use App\Repositories\SupplierRepository;
 use App\Services\ProductService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
@@ -30,7 +30,7 @@ class ProductController extends Controller
         // Resolve Page Title
         $pageTitle = 'Semua Produk';
         if ($selectedCategory !== 'all' && $selectedCategory !== 'semua' && ! empty($selectedCategory)) {
-            $categories = CategoryRepositories::getAll();
+            $categories = CategoryRepository::getAll();
             foreach ($categories as $cat) {
                 if ((string) $cat['id'] === (string) $selectedCategory
                     || strtolower($cat['slug'] ?? '') === strtolower($selectedCategory)
@@ -73,8 +73,8 @@ class ProductController extends Controller
             return redirect()->route('products.index')->with('error', 'Hanya Admin yang memiliki akses untuk menambah produk.');
         }
 
-        $categories = CategoryRepositories::getAll();
-        $suppliers = SupplierRepositories::getAll();
+        $categories = CategoryRepository::getAll();
+        $suppliers = SupplierRepository::getAll();
 
         return view('products.create', compact('categories', 'suppliers', 'role'));
     }
@@ -99,7 +99,7 @@ class ProductController extends Controller
             'stock_kotabaru' => 'nullable|numeric|min:0',
         ]);
 
-        $category = CategoryRepositories::getAll();
+        $category = CategoryRepository::getAll();
         $catName = 'Semen, Pasir & Mortar';
         foreach ($category as $c) {
             if ((string) $c['id'] === (string) $request->input('category_id')) {
@@ -124,11 +124,11 @@ class ProductController extends Controller
             'stock_kotabaru' => (int) $request->input('stock_kotabaru', 30),
         ];
 
-        $newProduct = ProductRepositories::create($productData);
+        $newProduct = ProductRepository::create($productData);
 
         // If supplier assigned
         if ($request->filled('supplier_id')) {
-            SupplierRepositories::assignProduct((int) $request->input('supplier_id'), (int) $newProduct['id']);
+            SupplierRepository::assignProduct((int) $request->input('supplier_id'), (int) $newProduct['id']);
         }
 
         return redirect()->route('products.index')->with('success', 'Produk "'.$newProduct['name'].'" berhasil ditambahkan.');
@@ -148,7 +148,7 @@ class ProductController extends Controller
         }
 
         if (! $data) {
-            $productItem = ProductRepositories::find($targetProduct);
+            $productItem = ProductRepository::find($targetProduct);
             if ($productItem) {
                 $catSlug = $productItem['category_slug'] ?? 'kategori';
                 $data = $this->productService->getProductDetail($catSlug, (string) $productItem['id']);
@@ -161,7 +161,7 @@ class ProductController extends Controller
 
         // Get suppliers for this product
         $productId = (int) ($data['product']['id'] ?? 0);
-        $suppliers = SupplierRepositories::getSuppliersForProduct($productId);
+        $suppliers = SupplierRepository::getSuppliersForProduct($productId);
 
         return view('products.show', array_merge($data, [
             'role' => $role,
@@ -176,14 +176,14 @@ class ProductController extends Controller
             return redirect()->route('products.index')->with('error', 'Hanya Admin yang dapat mengedit produk.');
         }
 
-        $product = ProductRepositories::find($id);
+        $product = ProductRepository::find($id);
         if (! $product) {
             return redirect()->route('products.index')->with('error', 'Produk tidak ditemukan.');
         }
 
-        $categories = CategoryRepositories::getAll();
-        $suppliers = SupplierRepositories::getAll();
-        $assignedSuppliers = SupplierRepositories::getSuppliersForProduct((int) $product['id']);
+        $categories = CategoryRepository::getAll();
+        $suppliers = SupplierRepository::getAll();
+        $assignedSuppliers = SupplierRepository::getSuppliersForProduct((int) $product['id']);
 
         return view('products.edit', compact('product', 'categories', 'suppliers', 'assignedSuppliers', 'role'));
     }
@@ -201,7 +201,7 @@ class ProductController extends Controller
             'price' => 'required|numeric|min:0',
         ]);
 
-        $category = CategoryRepositories::getAll();
+        $category = CategoryRepository::getAll();
         $catName = 'Semen, Pasir & Mortar';
         foreach ($category as $c) {
             if ((string) $c['id'] === (string) $request->input('category_id')) {
@@ -226,10 +226,10 @@ class ProductController extends Controller
             $updateData['image'] = $request->input('image');
         }
 
-        $updated = ProductRepositories::update($id, $updateData);
+        $updated = ProductRepository::update($id, $updateData);
 
         if ($request->filled('supplier_id')) {
-            SupplierRepositories::assignProduct((int) $request->input('supplier_id'), (int) $id);
+            SupplierRepository::assignProduct((int) $request->input('supplier_id'), (int) $id);
         }
 
         return redirect()->route('products.index')->with('success', 'Produk "'.$updated['name'].'" berhasil diperbarui.');
@@ -242,7 +242,7 @@ class ProductController extends Controller
             return redirect()->route('products.index')->with('error', 'Hanya Admin yang dapat menghapus produk.');
         }
 
-        $deleted = ProductRepositories::delete($id);
+        $deleted = ProductRepository::delete($id);
 
         if (! $deleted) {
             return redirect()->route('products.index')->with('error', 'Gagal menghapus produk.');

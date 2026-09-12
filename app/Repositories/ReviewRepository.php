@@ -2,7 +2,7 @@
 
 namespace App\Repositories;
 
-class ReviewRepositories
+class ReviewRepository
 {
     public static function getAll(): array
     {

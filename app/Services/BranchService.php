@@ -2,12 +2,12 @@
 
 namespace App\Services;
 
-use App\Repositories\BranchRepositories;
+use App\Repositories\BranchRepository;
 
 class BranchService
 {
     public function getAllBranches(): array
     {
-        return BranchRepositories::getAll();
+        return BranchRepository::getAll();
     }
 }

@@ -2,7 +2,7 @@
 
 namespace App\Repositories;
 
-class BranchRepositories
+class BranchRepository
 {
     public static function getAll(): array
     {
