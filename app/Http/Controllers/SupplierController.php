@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Repositories\ProductRepository;
-use App\Repositories\SupplierRepository;
+use App\Repositories\ProductRepositories;
+use App\Repositories\SupplierRepositories;
 use Illuminate\Http\Request;
 
 class SupplierController extends Controller
@@ -19,7 +19,7 @@ class SupplierController extends Controller
         $search = $request->get('q', '');
         $status = $request->get('status', 'all');
 
-        $suppliers = SupplierRepository::getAll();
+        $suppliers = SupplierRepositories::getAll();
 
         if ($status !== 'all') {
             $suppliers = array_filter($suppliers, fn ($s) => ($s['status'] ?? '') === $status);
@@ -36,7 +36,7 @@ class SupplierController extends Controller
         }
 
         // Hydrate product details for each supplier
-        $allProducts = ProductRepository::getAll();
+        $allProducts = ProductRepositories::getAll();
         $productsById = [];
         foreach ($allProducts as $p) {
             $productsById[$p['id']] = $p;
@@ -56,7 +56,7 @@ class SupplierController extends Controller
             'suppliers' => $suppliers,
             'search' => $search,
             'status' => $status,
-            'totalCount' => count(SupplierRepository::getAll()),
+            'totalCount' => count(SupplierRepositories::getAll()),
             'allProducts' => $allProducts,
         ]);
     }
@@ -68,7 +68,7 @@ class SupplierController extends Controller
             return redirect()->route('suppliers.index')->with('error', 'Hanya Admin yang dapat menambah pemasok.');
         }
 
-        $products = ProductRepository::getAll();
+        $products = ProductRepositories::getAll();
 
         return view('suppliers.create', [
             'role' => $role,
@@ -93,7 +93,7 @@ class SupplierController extends Controller
             'status' => 'required|in:active,inactive',
         ]);
 
-        $supplier = SupplierRepository::create([
+        $supplier = SupplierRepositories::create([
             'name' => $request->input('name'),
             'contact_person' => $request->input('contact_person'),
             'phone' => $request->input('phone'),
@@ -116,13 +116,13 @@ class SupplierController extends Controller
             return redirect()->route('products.index');
         }
 
-        $supplier = SupplierRepository::find($id);
+        $supplier = SupplierRepositories::find($id);
 
         if (! $supplier) {
             return redirect()->route('suppliers.index')->with('error', 'Pemasok tidak ditemukan.');
         }
 
-        $allProducts = ProductRepository::getAll();
+        $allProducts = ProductRepositories::getAll();
         $suppliedProducts = [];
         foreach ($allProducts as $p) {
             if (in_array((int) $p['id'], $supplier['product_ids'] ?? [], true)) {
@@ -145,13 +145,13 @@ class SupplierController extends Controller
             return redirect()->route('suppliers.index')->with('error', 'Hanya Admin yang dapat mengedit pemasok.');
         }
 
-        $supplier = SupplierRepository::find($id);
+        $supplier = SupplierRepositories::find($id);
 
         if (! $supplier) {
             return redirect()->route('suppliers.index')->with('error', 'Pemasok tidak ditemukan.');
         }
 
-        $products = ProductRepository::getAll();
+        $products = ProductRepositories::getAll();
 
         return view('suppliers.edit', [
             'role' => $role,
@@ -173,7 +173,7 @@ class SupplierController extends Controller
             'phone' => 'required|string|max:30',
         ]);
 
-        $updated = SupplierRepository::update((int) $id, [
+        $updated = SupplierRepositories::update((int) $id, [
             'name' => $request->input('name'),
             'contact_person' => $request->input('contact_person'),
             'phone' => $request->input('phone'),
@@ -199,7 +199,7 @@ class SupplierController extends Controller
             return redirect()->route('suppliers.index')->with('error', 'Hanya Admin yang dapat menghapus pemasok.');
         }
 
-        SupplierRepository::delete((int) $id);
+        SupplierRepositories::delete((int) $id);
 
         return redirect()->route('suppliers.index')
             ->with('success', 'Pemasok berhasil dihapus.');
@@ -213,7 +213,7 @@ class SupplierController extends Controller
         }
 
         $productId = (int) $request->input('product_id');
-        SupplierRepository::assignProduct((int) $id, $productId);
+        SupplierRepositories::assignProduct((int) $id, $productId);
 
         return redirect()->back()->with('success', 'Produk berhasil ditambahkan ke daftar pasokan pemasok.');
     }

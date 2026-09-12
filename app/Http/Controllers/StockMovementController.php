@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Repositories\StockMovementRepository;
+use App\Repositories\StockMovementRepositories;
 use Illuminate\Http\Request;
 
 class StockMovementController extends Controller
@@ -19,13 +19,13 @@ class StockMovementController extends Controller
         $branch = $request->get('branch', 'all');
         $search = $request->get('q', '');
 
-        $movements = StockMovementRepository::getFiltered([
+        $movements = StockMovementRepositories::getFiltered([
             'type' => $type,
             'branch' => $branch,
             'search' => $search,
         ]);
 
-        $allMovements = StockMovementRepository::getAll();
+        $allMovements = StockMovementRepositories::getAll();
         $countIn = count(array_filter($allMovements, fn ($m) => ($m['type'] ?? '') === 'in'));
         $countOut = count(array_filter($allMovements, fn ($m) => ($m['type'] ?? '') === 'out'));
         $countAdjustment = count(array_filter($allMovements, fn ($m) => ($m['type'] ?? '') === 'adjustment'));

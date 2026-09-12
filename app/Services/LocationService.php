@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Repositories\BranchRepository;
+use App\Repositories\BranchRepositories;
 
 class LocationService
 {
@@ -13,6 +13,6 @@ class LocationService
      */
     public function getLocations(): array
     {
-        return BranchRepository::getAll();
+        return BranchRepositories::getAll();
     }
 }
