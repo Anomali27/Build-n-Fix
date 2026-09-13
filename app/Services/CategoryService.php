@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
-use App\Repositories\BranchRepositories;
-use App\Repositories\CategoryRepositories;
-use App\Repositories\ProductRepositories;
+use App\Repositories\BranchRepository;
+use App\Repositories\CategoryRepository;
+use App\Repositories\ProductRepository;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 
@@ -15,7 +15,7 @@ class CategoryService
      */
     public function getAllCategories(): array
     {
-        $repoCategories = CategoryRepositories::getAll();
+        $repoCategories = CategoryRepository::getAll();
 
         if (Session::has('custom_categories')) {
             $sessionCategories = Session::get('custom_categories', []);
@@ -31,7 +31,7 @@ class CategoryService
         }
 
         $categories = Session::get('custom_categories', []);
-        $allProducts = ProductRepositories::getAll();
+        $allProducts = ProductRepository::getAll();
 
         $categoryProductCounts = [];
         foreach ($allProducts as $p) {
@@ -75,7 +75,7 @@ class CategoryService
      */
     public function getProductsByCategoryId(int|string $categoryId): array
     {
-        $allProducts = ProductRepositories::getAll();
+        $allProducts = ProductRepository::getAll();
         $targetId = (string) $categoryId;
 
         return array_values(array_filter($allProducts, function ($p) use ($targetId) {
@@ -89,10 +89,10 @@ class CategoryService
     public function getFilteredCategories(array $filters = [], string $sort = 'terpopuler'): array
     {
         $allCategories = $this->getAllCategories();
-        $allProducts = ProductRepositories::getAll();
-        $allBranches = BranchRepositories::getAll();
+        $allProducts = ProductRepository::getAll();
+        $allBranches = BranchRepository::getAll();
 
-        // Calculate dynamic product counts per category based on ProductRepositories.category_id
+        // Calculate dynamic product counts per category based on ProductRepository.category_id
         $categoryProductCounts = [];
         foreach ($allProducts as $p) {
             $catId = (string) ($p['category_id'] ?? '');

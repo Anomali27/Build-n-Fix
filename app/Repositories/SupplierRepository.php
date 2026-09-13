@@ -4,7 +4,7 @@ namespace App\Repositories;
 
 use Illuminate\Support\Facades\Session;
 
-class SupplierRepositories
+class SupplierRepository
 {
     protected static array $defaultSuppliers = [
         [

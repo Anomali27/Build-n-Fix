@@ -2,7 +2,7 @@
 
 namespace App\Repositories;
 
-class CategoryRepositories
+class CategoryRepository
 {
     public static function getAll(): array
     {

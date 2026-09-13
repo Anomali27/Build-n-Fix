@@ -4,7 +4,7 @@ namespace App\Repositories;
 
 use Illuminate\Support\Facades\Session;
 
-class UserRepositories
+class UserRepository
 {
     /**
      * Centralized static mock user data.

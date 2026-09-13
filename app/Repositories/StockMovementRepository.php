@@ -4,7 +4,7 @@ namespace App\Repositories;
 
 use Illuminate\Support\Facades\Session;
 
-class StockMovementRepositories
+class StockMovementRepository
 {
     protected static array $defaultMovements = [
         [

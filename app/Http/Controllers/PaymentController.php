@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Repositories\PaymentRepositories;
+use App\Repositories\PaymentRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
@@ -24,9 +24,9 @@ class PaymentController extends Controller
         $search = $request->get('q', '');
 
         if ($role === 'customer') {
-            $payments = PaymentRepositories::getByUser($userId);
+            $payments = PaymentRepository::getByUser($userId);
         } else {
-            $payments = PaymentRepositories::getAll();
+            $payments = PaymentRepository::getAll();
         }
 
         if ($branchFilter !== 'all') {
@@ -53,7 +53,7 @@ class PaymentController extends Controller
         }
 
         // Summary stats
-        $allPayments = $role === 'customer' ? PaymentRepositories::getByUser($userId) : PaymentRepositories::getAll();
+        $allPayments = $role === 'customer' ? PaymentRepository::getByUser($userId) : PaymentRepository::getAll();
         $totalPaidAmount = 0;
         $pendingCount = 0;
         $paidCount = 0;
@@ -82,7 +82,7 @@ class PaymentController extends Controller
     public function show(string|int $id)
     {
         $role = session('user.role', 'customer');
-        $payment = PaymentRepositories::find($id);
+        $payment = PaymentRepository::find($id);
 
         if (! $payment) {
             return redirect()->route('payments.index')->with('error', 'Data pembayaran tidak ditemukan.');
@@ -90,7 +90,7 @@ class PaymentController extends Controller
 
         return view('payments.index', [
             'role' => $role,
-            'payments' => PaymentRepositories::getAll(),
+            'payments' => PaymentRepository::getAll(),
             'selectedPayment' => $payment,
             'statusFilter' => 'all',
             'branchFilter' => 'all',
@@ -110,7 +110,7 @@ class PaymentController extends Controller
         }
 
         $status = $request->input('status', 'paid');
-        PaymentRepositories::updateStatus($id, $status);
+        PaymentRepository::updateStatus($id, $status);
 
         return redirect()->route('payments.index')->with('success', 'Status pembayaran berhasil diperbarui menjadi '.ucfirst($status).'.');
     }

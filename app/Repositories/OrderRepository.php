@@ -4,7 +4,7 @@ namespace App\Repositories;
 
 use Illuminate\Support\Facades\Session;
 
-class OrderRepositories
+class OrderRepository
 {
     /**
      * Centralized mock order data.

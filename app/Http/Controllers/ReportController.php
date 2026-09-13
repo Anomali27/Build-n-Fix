@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Repositories\ReportRepositories;
+use App\Repositories\ReportRepository;
 use Illuminate\Http\Request;
 
 class ReportController extends Controller
@@ -24,7 +24,7 @@ class ReportController extends Controller
             $branch = $userBranch;
         }
 
-        $reportData = ReportRepositories::getSalesReport($branch, $period);
+        $reportData = ReportRepository::getSalesReport($branch, $period);
 
         return view('reports.index', array_merge($reportData, [
             'role' => $role,

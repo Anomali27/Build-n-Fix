@@ -2,7 +2,7 @@
 
 namespace App\Repositories;
 
-class ReportRepositories
+class ReportRepository
 {
     /**
      * Get consolidated sales report data for all branches or a single branch.

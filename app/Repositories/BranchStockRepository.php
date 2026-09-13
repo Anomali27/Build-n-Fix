@@ -4,7 +4,7 @@ namespace App\Repositories;
 
 use Illuminate\Support\Facades\Session;
 
-class BranchStockRepositories
+class BranchStockRepository
 {
     public static function getAll(): array
     {
@@ -91,8 +91,8 @@ class BranchStockRepositories
      */
     public static function getCategoryProductStockMatrix(string $search = '', string $categoryFilter = 'all'): array
     {
-        $products = ProductRepositories::getAll();
-        $categories = CategoryRepositories::getAll();
+        $products = ProductRepository::getAll();
+        $categories = CategoryRepository::getAll();
 
         // Map categories by id for quick lookup
         $categoryMap = [];
