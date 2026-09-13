@@ -55,7 +55,7 @@
 
         <!-- Right: Quantity Controls & Subtotal -->
         <div class="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-gray-100 gap-3 shrink-0">
-            
+
             <!-- Quantity Control -->
             <div class="flex items-center gap-2">
                 <div class="inline-flex items-center rounded-xl bg-gray-50 border border-gray-200 p-1">
@@ -64,7 +64,7 @@
                         @csrf
                         @method('PATCH')
                         <input type="hidden" name="quantity" value="{{ max(1, $quantity - 1) }}">
-                        <button type="submit" 
+                        <button type="submit"
                                 @if($quantity <= 1) @click.prevent="showRemoveModal = true" @endif
                                 class="w-7 h-7 rounded-lg bg-white border border-gray-200 text-gray-700 font-bold flex items-center justify-center hover:bg-gray-100 hover:text-black transition-all">
                             -
@@ -81,7 +81,7 @@
                         @csrf
                         @method('PATCH')
                         <input type="hidden" name="quantity" value="{{ $quantity + 1 }}">
-                        <button type="submit" 
+                        <button type="submit"
                                 @if($quantity >= $stock) disabled @endif
                                 class="w-7 h-7 rounded-lg bg-white border border-gray-200 text-gray-700 font-bold flex items-center justify-center hover:bg-gray-100 hover:text-black disabled:opacity-40 disabled:cursor-not-allowed transition-all">
                             +
@@ -90,7 +90,7 @@
                 </div>
 
                 <!-- Remove Button -->
-                <button type="button" 
+                <button type="button"
                         @click="showRemoveModal = true"
                         class="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-colors text-xs font-bold flex items-center gap-1">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
