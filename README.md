@@ -1,58 +1,189 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Build n Fix
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Build n Fix adalah aplikasi web penjualan bahan bangunan yang juga mendukung pengelolaan inventory. Dikembangkan oleh tim PT Structon.
 
-## About Laravel
+## ?? Deskripsi
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Platform web untuk penjualan bahan bangunan.
+- Customer dapat mencari dan membeli material bangunan.
+- Sistem menyediakan informasi produk, harga, dan stok berdasarkan cabang.
+- Admin mengelola operasional cabang masing-masing.
+- Owner dapat memantau seluruh cabang.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## ? Fitur Utama
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### ?? Customer
+- Melihat katalog produk
+- Melihat kategori
+- Melihat detail produk
+- Melihat harga dan stok berdasarkan cabang
+- Pencarian produk
+- Shopping cart
+- Checkout
+- Pilihan Pickup atau Delivery
+- Simulasi pembayaran (mock payment)
+- Order Center (riwayat order)
+- Melihat status/tracking pesanan
+- Pengaturan profil
+- Logout
 
-## Learning Laravel
+### ???? Admin
+- Admin Dashboard
+- Manajemen produk
+- Manajemen kategori
+- Manajemen stok
+- Manajemen supplier
+- Purchase Order
+- Manajemen order
+- Manajemen payment
+- Activity Log
+- Operasi berbasis cabang (Serdam, Gajahmada, Kota Baru)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### ?? Owner
+- Owner Dashboard
+- Monitoring seluruh cabang
+- Overview penjualan
+- Overview stok
+- Produk terlaris
+- Stok rendah
+- Pembelian supplier
+- Nilai inventory
+- Laporan penjualan, stok, purchase, inventory
+- Activity Log
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## ?? Branch
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+Build n Fix memiliki tiga cabang:
+- Serdam
+- Gajahmada
+- Kota Baru
 
-## Agentic Development
+Stok dapat berbeda pada setiap cabang, sementara harga produk bersifat konsisten antar cabang sesuai rancangan aplikasi.
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## ??? Order Flow
 
-```bash
-composer require laravel/boost --dev
+`
+Product ? Cart ? Checkout ? Payment ? Order ? Tracking ? Completed
+`
 
-php artisan boost:install
-```
+Customer dapat memilih metode:
+- **Pickup**: Paid ? Ready to Pick Up ? Order Completed
+- **Delivery**: Paid ? Proses ? On Delivery ? Order Completed
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+## ?? Payment
 
-## Contributing
+Sistem pembayaran masih berupa simulasi/mock dan belum terintegrasi dengan gateway nyata. Metode simulasi yang tersedia:
+- Virtual Account
+- E-Wallet
+- Credit/Debit Simulation
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## ?? Product Catalog
 
-## Code of Conduct
+- Semen & Mortar
+- Cat & Finishing
+- Besi & Baja
+- Pipa & Plumbing
+- Kayu
+- Atap
+- Peralatan
+- Lantai & Keramik
+- Elektrikal
+- Bahan Lainnya
+- Pondasi & Beton
+- Kaca & Aluminium
+- Perekat & Sealant
+- Tangki Air & Pompa
+- Genteng & Insulation
+- Alat Keselamatan
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## ??? Technology Stack
 
-## Security Vulnerabilities
+### Frontend
+- HTML
+- Blade templating
+- Tailwind CSS
+- JavaScript
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Backend
+- PHP 8.5
+- Laravel 13
 
-## License
+### Development Tools
+- Vite
+- Git & GitHub
+- Laragon
+- Figma (design)
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## ??? Architecture
+
+`
+Route ? Middleware ? Controller ? Service ? Data (mock/static) ? View ? Blade Components
+`
+
+Business logic dipisahkan ke service layer, sementara data masih berupa mock/static dan disimpan di session selama tahap pengembangan.
+
+## ??? Database Status
+
+Saat ini proyek belum terhubung ke database. Data dikelola melalui:
+- Mock Data
+- Static Data
+- Laravel Session
+
+Struktur dipersiapkan agar dapat di-migrasikan ke database pada fase berikutnya.
+
+## ?? Design
+
+Desain Build n Fix bersifat modern, minimalist, industrial, professional, clean, dan spacious.
+
+**Palet warna**:
+- #FFFFFF (putih)
+- #F8F8F6 (off-white)
+- #111111 (hitam gelap)
+- #171717 (gelap)
+- #F97316 (oranye)
+- #2563EB (biru)
+
+## ?? Project Structure
+
+`	ext
+app/
++-- Data/
++-- Services/
++-- Http/
+    +-- Controllers/
+    +-- Middleware/
+
+resources/
++-- views/
+    +-- layouts/
+    +-- components/
+    +-- auth/
+    +-- home/
+    +-- products/
+    +-- categories/
+    +-- cart/
+    +-- checkout/
+    +-- orders/
+    +-- inventory/
+    +-- suppliers/
+    +-- purchase-orders/
+    +-- admin/
+    +-- owner/
+` 
+
+## ?? Project Status
+
+- **In Development** – Beberapa fitur masih menggunakan mock/static data dan belum terhubung ke database atau payment gateway.
+
+## ?? Team
+
+| Name | Role |
+|---|---|
+| Aricks Wijaya | UI/UX |
+| David Wijaya | UI/UX |
+| Edward Cornelius | Front-End & Back-End |
+| Vincent William | Front-End & Back-End |
+
+---
+
+*README ini memberikan gambaran lengkap tentang proyek Build n Fix sesuai dengan implementasi yang ada pada repository.*
