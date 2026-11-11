@@ -8,13 +8,12 @@
         : asset('/images/categories/default.jpg');
 
     $catSlug = $category['slug'] ?? ($category['id'] ?? 1);
-    $productRoute = Route::has('categories.show')
-        ? route('categories.show', $catSlug)
-        : '#';
-    
+    $productRoute = route('products.index', ['category' => $catSlug]);
+
+    $productCount = $category['products_count'] ?? ($category['count'] ?? 0);
     $countText = isset($category['count_label'])
-        ? str_replace(['Categories', 'categories'], 'Produk', $category['count_label']) 
-        : (($category['count'] ?? 0) . ' Produk');
+        ? str_replace(['Categories', 'categories'], 'Produk', $category['count_label'])
+        : ($productCount . ' Produk');
     $status = $category['status'] ?? 'active';
 @endphp
 
@@ -44,7 +43,7 @@
 
         <div class="flex items-center gap-3">
             @auth
-                @if(in_array(session('user.role'), ['admin', 'owner']))
+                @if(in_array(auth()->user()?->role, ['admin', 'owner']))
                     <a href="{{ route('categories.edit', $catSlug) }}" class="p-2 text-gray-400 hover:text-amber-600 transition-colors" title="Edit Kategori">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -63,7 +62,7 @@
 
         <!-- Admin Edit Quick Button -->
         @auth
-            @if(in_array(session('user.role'), ['admin', 'owner']))
+            @if(in_array(auth()->user()?->role, ['admin', 'owner']))
                 <div class="absolute top-3 right-3 z-10">
                     <a href="{{ route('categories.edit', $catSlug) }}" class="w-8 h-8 rounded-full bg-white/90 backdrop-blur-md border border-gray-200 text-gray-700 hover:text-[#F97316] flex items-center justify-center shadow-sm transition-all" title="Edit Kategori">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

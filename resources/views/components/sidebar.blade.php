@@ -1,7 +1,7 @@
 @php
-    $userRole = session('user.role', 'customer');
-    $userBranch = session('user.branch');
-    $user = session('user', []);
+    $userRole = auth()->user()?->role ?? 'customer';
+    $userBranch = auth()->user()?->branch;
+    $userName = auth()->user()?->name ?? 'User';
 @endphp
 
 @if(in_array($userRole, ['admin', 'owner']))
@@ -147,10 +147,10 @@
             <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2.5 min-w-0">
                     <div class="w-8 h-8 rounded-xl bg-white/10 border border-white/20 text-[#F97316] flex items-center justify-center font-black text-xs shrink-0">
-                        {{ strtoupper(substr($user['name'] ?? 'U', 0, 2)) }}
+                        {{ strtoupper(substr($userName, 0, 2)) }}
                     </div>
                     <div class="min-w-0">
-                        <p class="text-xs font-bold text-white truncate">{{ $user['name'] ?? 'User' }}</p>
+                        <p class="text-xs font-bold text-white truncate">{{ $userName }}</p>
                         <p class="text-[10px] text-gray-400 truncate">{{ $userRole }}</p>
                     </div>
                 </div>

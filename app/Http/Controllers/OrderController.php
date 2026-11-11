@@ -2,73 +2,70 @@
 
 namespace App\Http\Controllers;
 
-use App\Repositories\OrderRepository;
-use App\Services\OrderService;
+use App\Http\Requests\Order\UpdateOrderStatusRequest;
+use App\Models\Branch;
+use App\Models\Order;
+use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
 
 class OrderController extends Controller
 {
-    public function __construct(
-        protected OrderService $orderService
-    ) {}
-
-    /**
-     * Display the Orders page (Management Table for Admin/Owner, Order Center for Customer).
-     */
-    public function index(Request $request)
+    public function index(Request $request): View
     {
-        $role = session('user.role', 'customer');
-        $sessionUser = Session::get('user');
+        /** @var User $user */
+        $user = $request->user();
+        $role = $user->role ?? 'customer';
 
-        if (! $sessionUser && ! Auth::check()) {
-            return redirect()->route('login')->with('info', 'Silakan login terlebih dahulu untuk mengakses pesanan.');
+        $tab = (string) $request->query('tab', 'all');
+        $filter = (string) $request->query('filter', 'all');
+        $search = (string) $request->query('search', $request->query('q', ''));
+        $branchFilter = (string) $request->query('branch', 'all');
+        $statusFilter = (string) $request->query('status', 'all');
+        $selectedOrderIdentifier = $request->query('order');
+
+        if ($role === 'customer') {
+            $customerData = $this->buildCustomerOrderLists((int) $user->id, $filter, $search);
+
+            $selectedOrder = null;
+            if ($selectedOrderIdentifier !== null && $selectedOrderIdentifier !== '') {
+                $selectedOrder = Order::query()
+                    ->with(['branch', 'items', 'latestPayment'])
+                    ->forUser((int) $user->id)
+                    ->where('order_number', (string) $selectedOrderIdentifier)
+                    ->first()
+                    ?->toDisplayArray();
+            }
+
+            return view('orders.index', array_merge($customerData, [
+                'role' => $role,
+                'activeTab' => $tab,
+                'activeFilter' => $filter,
+                'search' => $search,
+                'branchFilter' => $branchFilter,
+                'statusFilter' => $statusFilter,
+                'selectedOrder' => $selectedOrder,
+                'managementOrders' => [],
+                'branches' => collect(),
+            ]));
         }
 
-        $userId = (int) ($sessionUser['user_id'] ?? $sessionUser['id'] ?? (Auth::id() ?? 1));
-        $tab = $request->query('tab', 'all');
-        $filter = $request->query('filter', 'all');
-        $search = $request->query('search', $request->query('q', ''));
-        $branchFilter = $request->query('branch', 'all');
-        $statusFilter = $request->query('status', 'all');
-        $selectedOrderNumber = $request->query('order');
-
-        // Customer datasets
-        $allOrders = $this->orderService->getCustomerOrders($userId, $filter, $search);
-        $successOrders = $this->orderService->getSuccessOrders($userId);
-        $trackingOrders = $this->orderService->getTrackingOrders($userId);
-        $historyOrders = $this->orderService->getHistoryOrders($userId);
+        $managementOrders = Order::query()
+            ->with(['branch', 'items', 'latestPayment'])
+            ->forBranch($branchFilter !== 'all' ? $branchFilter : null)
+            ->withStatus($statusFilter !== 'all' ? $statusFilter : null)
+            ->search($search !== '' ? $search : null)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (Order $order): array => $order->toDisplayArray())
+            ->all();
 
         $selectedOrder = null;
-        if ($selectedOrderNumber) {
-            $selectedOrder = $this->orderService->getOrderDetail($selectedOrderNumber, $role === 'customer' ? $userId : null);
-        }
-
-        // Admin & Owner Management dataset
-        $managementOrders = OrderRepository::all();
-
-        if ($branchFilter !== 'all') {
-            $managementOrders = array_filter($managementOrders, function ($o) use ($branchFilter) {
-                return strtolower($o['branch_name'] ?? '') === strtolower($branchFilter);
-            });
-        }
-
-        if ($statusFilter !== 'all') {
-            $managementOrders = array_filter($managementOrders, function ($o) use ($statusFilter) {
-                return ($o['order_status'] ?? '') === $statusFilter;
-            });
-        }
-
-        if (! empty($search)) {
-            $q = strtolower(trim($search));
-            $managementOrders = array_filter($managementOrders, function ($o) use ($q) {
-                return str_contains(strtolower($o['order_number'] ?? ''), $q) ||
-                       str_contains(strtolower($o['customer_name'] ?? ''), $q) ||
-                       str_contains(strtolower($o['customer_email'] ?? ''), $q) ||
-                       str_contains(strtolower($o['payment_method'] ?? ''), $q) ||
-                       str_contains(strtolower($o['branch_name'] ?? ''), $q);
-            });
+        if ($selectedOrderIdentifier !== null && $selectedOrderIdentifier !== '') {
+            $selectedOrder = $this->findOrderByIdentifier((string) $selectedOrderIdentifier)?->toDisplayArray();
         }
 
         return view('orders.index', [
@@ -78,85 +75,165 @@ class OrderController extends Controller
             'search' => $search,
             'branchFilter' => $branchFilter,
             'statusFilter' => $statusFilter,
-            'allOrders' => $allOrders,
-            'successOrders' => $successOrders,
-            'trackingOrders' => $trackingOrders,
-            'historyOrders' => $historyOrders,
+            'allOrders' => [],
+            'successOrders' => [],
+            'trackingOrders' => [],
+            'historyOrders' => [],
             'selectedOrder' => $selectedOrder,
-            'managementOrders' => array_values($managementOrders),
+            'managementOrders' => $managementOrders,
+            'branches' => Branch::query()->orderBy('id')->get(),
         ]);
     }
 
-    /**
-     * Display single order detail.
-     */
-    public function show(string $orderNumber)
+    public function show(Request $request, string $order): View
     {
-        $role = session('user.role', 'customer');
-        $sessionUser = Session::get('user');
+        /** @var User $user */
+        $user = $request->user();
+        $role = $user->role ?? 'customer';
 
-        if (! $sessionUser && ! Auth::check()) {
-            return redirect()->route('login');
-        }
+        $found = $this->findOrderByIdentifier($order);
 
-        $userId = (int) ($sessionUser['user_id'] ?? $sessionUser['id'] ?? (Auth::id() ?? 1));
-        $order = $this->orderService->getOrderDetail($orderNumber, $role === 'customer' ? $userId : null);
-
-        if (! $order) {
+        if (! $found || ($role === 'customer' && (int) $found->user_id !== (int) $user->id)) {
             abort(404, 'Pesanan tidak ditemukan atau Anda tidak memiliki akses.');
         }
 
         if ($role === 'customer') {
-            $allOrders = $this->orderService->getCustomerOrders($userId);
-            $successOrders = $this->orderService->getSuccessOrders($userId);
-            $trackingOrders = $this->orderService->getTrackingOrders($userId);
-            $historyOrders = $this->orderService->getHistoryOrders($userId);
+            $customerData = $this->buildCustomerOrderLists((int) $user->id);
 
-            return view('orders.index', [
+            return view('orders.index', array_merge($customerData, [
                 'role' => $role,
                 'activeTab' => 'all',
                 'activeFilter' => 'all',
-                'search' => null,
-                'allOrders' => $allOrders,
-                'successOrders' => $successOrders,
-                'trackingOrders' => $trackingOrders,
-                'historyOrders' => $historyOrders,
-                'selectedOrder' => $order,
+                'search' => '',
+                'branchFilter' => 'all',
+                'statusFilter' => 'all',
+                'selectedOrder' => $found->toDisplayArray(),
                 'managementOrders' => [],
-            ]);
+                'branches' => collect(),
+            ]));
         }
+
+        $managementOrders = Order::query()
+            ->with(['branch', 'items', 'latestPayment'])
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (Order $o): array => $o->toDisplayArray())
+            ->all();
 
         return view('orders.index', [
             'role' => $role,
             'activeTab' => 'all',
             'activeFilter' => 'all',
-            'search' => null,
+            'search' => '',
             'branchFilter' => 'all',
             'statusFilter' => 'all',
             'allOrders' => [],
             'successOrders' => [],
             'trackingOrders' => [],
             'historyOrders' => [],
-            'selectedOrder' => $order,
-            'managementOrders' => OrderRepository::all(),
+            'selectedOrder' => $found->toDisplayArray(),
+            'managementOrders' => $managementOrders,
+            'branches' => Branch::query()->orderBy('id')->get(),
         ]);
     }
 
-    /**
-     * Update order status (Admin only).
-     */
-    public function update(Request $request, string $orderNumber)
+    public function update(UpdateOrderStatusRequest $request, string $order): RedirectResponse
     {
-        $role = session('user.role', 'customer');
-        if ($role !== 'admin') {
-            return redirect()->route('orders.index')->with('error', 'Hanya Admin yang dapat memperbarui status pesanan.');
+        $target = $this->findOrderByIdentifier($order);
+
+        if (! $target) {
+            abort(404, 'Pesanan tidak ditemukan.');
         }
 
-        $status = $request->input('order_status');
-        $paymentStatus = $request->input('payment_status');
+        $validated = $request->validated();
 
-        OrderRepository::updateStatus($orderNumber, $status, $paymentStatus);
+        DB::transaction(function () use ($target, $validated): void {
+            $updatePayload = ['order_status' => $validated['order_status']];
 
-        return redirect()->route('orders.index')->with('success', 'Status pesanan '.$orderNumber.' berhasil diperbarui.');
+            if (! empty($validated['payment_status'])) {
+                $updatePayload['payment_status'] = $validated['payment_status'];
+
+                if ($target->latestPayment) {
+                    $target->latestPayment->update([
+                        'status' => $validated['payment_status'],
+                        'paid_at' => $validated['payment_status'] === 'paid'
+                            ? ($target->latestPayment->paid_at ?? now())
+                            : $target->latestPayment->paid_at,
+                    ]);
+                }
+            }
+
+            $target->update($updatePayload);
+        });
+
+        return redirect()->route('orders.index')
+            ->with('success', 'Status pesanan '.$target->order_number.' berhasil diperbarui.');
+    }
+
+    /**
+     * Fetch and partition customer order tabs from MySQL in a single query.
+     *
+     * @return array{allOrders: array<int, array<string, mixed>>, successOrders: array<int, array<string, mixed>>, trackingOrders: array<int, array<string, mixed>>, historyOrders: array<int, array<string, mixed>>}
+     */
+    private function buildCustomerOrderLists(int $userId, string $filter = 'all', string $search = ''): array
+    {
+        $orders = Order::query()
+            ->with(['branch', 'items', 'latestPayment'])
+            ->forUser($userId)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (Order $order): array => $order->toDisplayArray())
+            ->all();
+
+        $filteredAll = $orders;
+        if (trim($search) !== '') {
+            $q = strtolower(trim($search));
+            $filteredAll = array_values(array_filter(
+                $filteredAll,
+                fn (array $o): bool => str_contains(strtolower($o['order_number']), $q)
+                    || str_contains(strtolower($o['branch_name']), $q)
+            ));
+        }
+
+        $filteredAll = match (strtolower($filter)) {
+            'pickup' => array_values(array_filter($filteredAll, fn (array $o): bool => $o['fulfillment_method'] === 'pickup')),
+            'delivery' => array_values(array_filter($filteredAll, fn (array $o): bool => $o['fulfillment_method'] === 'delivery')),
+            'active' => array_values(array_filter($filteredAll, fn (array $o): bool => ! in_array($o['order_status'], ['order_completed', 'completed', 'cancelled'], true))),
+            'completed' => array_values(array_filter($filteredAll, fn (array $o): bool => in_array($o['order_status'], ['order_completed', 'completed'], true))),
+            default => $filteredAll,
+        };
+
+        $successOrders = array_values(array_filter(
+            $orders,
+            fn (array $o): bool => $o['payment_status'] === 'paid'
+        ));
+
+        $trackingOrders = array_values(array_filter(
+            $orders,
+            fn (array $o): bool => ! in_array($o['order_status'], ['order_completed', 'completed', 'cancelled'], true)
+        ));
+
+        $historyOrders = array_values(array_filter(
+            $orders,
+            fn (array $o): bool => in_array($o['order_status'], ['order_completed', 'completed'], true)
+        ));
+
+        return [
+            'allOrders' => $filteredAll,
+            'successOrders' => $successOrders,
+            'trackingOrders' => $trackingOrders,
+            'historyOrders' => $historyOrders,
+        ];
+    }
+
+    private function findOrderByIdentifier(string $identifier): ?Order
+    {
+        return Order::query()
+            ->with(['branch', 'items', 'latestPayment'])
+            ->where('order_number', $identifier)
+            ->when(is_numeric($identifier), fn ($q) => $q->orWhere('id', (int) $identifier))
+            ->first();
     }
 }

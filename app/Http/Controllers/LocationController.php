@@ -2,17 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\LocationService;
+use App\Models\Branch;
 
 class LocationController extends Controller
 {
-    public function __construct(
-        protected LocationService $locationService
-    ) {}
-
     public function index()
     {
-        $locations = $this->locationService->getLocations();
+        $locations = Branch::all();
 
         return view('locations.index', compact('locations'));
     }

@@ -76,15 +76,27 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             @forelse($suppliedProducts as $p)
+                @php
+                    $rawImage = $p->image ?? '';
+                    $imgUrl = $rawImage !== ''
+                        ? (\Illuminate\Support\Str::startsWith($rawImage, ['http://', 'https://']) ? $rawImage : asset($rawImage))
+                        : null;
+                @endphp
                 <div class="p-4 rounded-2xl bg-gray-50 border border-gray-200/70 flex items-center gap-4 hover:bg-white hover:border-[#F97316]/30 transition-all shadow-xs">
-                    <img src="{{ $p['image'] }}" class="w-16 h-16 rounded-xl object-cover bg-white border border-gray-100 shrink-0">
+                    @if($imgUrl)
+                        <img src="{{ $imgUrl }}" alt="{{ $p->name }}" class="w-16 h-16 rounded-xl object-cover bg-white border border-gray-100 shrink-0">
+                    @else
+                        <div class="w-16 h-16 rounded-xl bg-white border border-gray-100 shrink-0 flex items-center justify-center text-[10px] font-bold text-gray-400">
+                            Produk
+                        </div>
+                    @endif
                     <div class="flex-1 min-w-0">
-                        <span class="text-[10px] font-mono text-gray-400">{{ $p['sku'] }}</span>
-                        <h4 class="font-extrabold text-xs text-gray-900 truncate">{{ $p['name'] }}</h4>
+                        <span class="text-[10px] font-mono text-gray-400">{{ $p->sku }}</span>
+                        <h4 class="font-extrabold text-xs text-gray-900 truncate">{{ $p->name }}</h4>
                         <p class="text-xs font-black text-[#F97316] mt-1">
-                            Rp {{ number_format($p['price'], 0, ',', '.') }}
+                            Rp {{ number_format($p->price, 0, ',', '.') }}
                         </p>
-                        <a href="{{ route('products.show', $p['id']) }}" class="text-[11px] font-bold text-gray-500 hover:text-gray-900 mt-1 inline-block">
+                        <a href="{{ route('products.show', $p->slug) }}" class="text-[11px] font-bold text-gray-500 hover:text-gray-900 mt-1 inline-block">
                             Lihat Detail &rarr;
                         </a>
                     </div>

@@ -1,10 +1,10 @@
 @auth
     @php
-        $user = session('user') ?? [];
-        $userName = $user['name'] ?? 'User';
-        $userEmail = $user['email'] ?? 'user@buildnfix.test';
-        $userRole = $user['role'] ?? 'customer';
-        $userBranch = $user['branch'] ?? null;
+        $user = auth()->user();
+        $userName = $user?->name ?? 'User';
+        $userEmail = $user?->email ?? 'user@buildnfix.test';
+        $userRole = $user?->role ?? 'customer';
+        $userBranch = $user?->branch ?? null;
         
         $words = array_filter(explode(' ', trim($userName)));
         $initials = '';

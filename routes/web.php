@@ -15,40 +15,18 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\StockMovementController;
 use App\Http\Controllers\SupplierController;
-use App\Repositories\UserRepository;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Session;
-
-/*
-|--------------------------------------------------------------------------
-| Web Routes — Build n Fix (Single Controller per Feature Multi-Role)
-|--------------------------------------------------------------------------
-*/
 
 // ── Authentication ────────────────────────────────────
-Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [AuthController::class, 'login'])->name('login.store');
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
+    Route::post('/login', [AuthController::class, 'login'])->name('login.store');
 
-Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
-Route::post('/register', [AuthController::class, 'register'])->name('register.store');
+    Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
+    Route::post('/register', [AuthController::class, 'register'])->name('register.store');
+});
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-
-// Quick Role Switcher (Convenient helper for testing multi-role workflows)
-Route::get('/switch-role/{role}', function (string $role) {
-    $roleMap = [
-        'customer' => ['id' => 1, 'user_id' => 1, 'name' => 'Customer', 'email' => 'customer@buildnfix.test', 'role' => 'customer', 'branch' => null],
-        'admin' => ['id' => 2, 'user_id' => 2, 'name' => 'Admin Serdam', 'email' => 'admin.serdam@buildnfix.test', 'role' => 'admin', 'branch' => 'Serdam'],
-        'admin-gajahmada' => ['id' => 3, 'user_id' => 3, 'name' => 'Admin Gajahmada', 'email' => 'admin.gajahmada@buildnfix.test', 'role' => 'admin', 'branch' => 'Gajahmada'],
-        'admin-kotabaru' => ['id' => 4, 'user_id' => 4, 'name' => 'Admin Kota Baru', 'email' => 'admin.kotabaru@buildnfix.test', 'role' => 'admin', 'branch' => 'Kota Baru'],
-        'owner' => ['id' => 5, 'user_id' => 5, 'name' => 'Owner', 'email' => 'owner@buildnfix.test', 'role' => 'owner', 'branch' => 'all'],
-    ];
-
-    $target = $roleMap[$role] ?? $roleMap['customer'];
-    app(\App\Services\AuthService::class)->createSession($target);
-
-    return redirect()->back()->with('success', 'Beralih peran sebagai: ' . $target['name'] . ' (' . ucfirst($target['role']) . ')');
-})->name('switch-role');
 
 // ── Dashboard ─────────────────────────────────────────
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -85,28 +63,32 @@ Route::resource('suppliers', SupplierController::class);
 Route::post('/suppliers/{supplier}/assign-product', [SupplierController::class, 'assignProduct'])->name('suppliers.assign-product');
 
 // ── Orders (Single Controller) ────────────────────────
-Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
-Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
-Route::put('/orders/{order}', [OrderController::class, 'update'])->name('orders.update');
+Route::middleware('auth')->group(function () {
+    Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
+    Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+    Route::put('/orders/{order}', [OrderController::class, 'update'])->name('orders.update');
+});
 
 // ── Payments (Single Controller) ──────────────────────
-Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
-Route::get('/payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
-Route::put('/payments/{payment}', [PaymentController::class, 'update'])->name('payments.update');
+Route::middleware('auth')->group(function () {
+    Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
+    Route::get('/payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
+    Route::put('/payments/{payment}', [PaymentController::class, 'update'])->name('payments.update');
+});
 
 // ── Reports (Single Controller: Laporan Penjualan) ────
 Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
 
 // ── Cart & Checkout ───────────────────────────────────
-Route::prefix('cart')->name('cart.')->group(function () {
+Route::middleware('auth')->prefix('cart')->name('cart.')->group(function () {
     Route::get('/', [CartController::class, 'index'])->name('index');
     Route::post('/', [CartController::class, 'store'])->name('store');
-    Route::patch('/{product}', [CartController::class, 'update'])->name('update');
-    Route::delete('/{product}', [CartController::class, 'destroy'])->name('destroy');
+    Route::patch('/{cartItem}', [CartController::class, 'update'])->name('update');
+    Route::delete('/{cartItem}', [CartController::class, 'destroy'])->name('destroy');
     Route::delete('/', [CartController::class, 'clear'])->name('clear');
 });
 
-Route::prefix('checkout')->name('checkout.')->group(function () {
+Route::middleware('auth')->prefix('checkout')->name('checkout.')->group(function () {
     Route::get('/', [CheckoutController::class, 'index'])->name('index');
     Route::post('/', [CheckoutController::class, 'store'])->name('store');
     Route::get('/payment', [CheckoutController::class, 'payment'])->name('payment');

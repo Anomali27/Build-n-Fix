@@ -2,29 +2,30 @@
 
 namespace App\Http\Controllers;
 
-use App\Repositories\ReportRepository;
+use App\Models\Order;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class ReportController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): View|RedirectResponse
     {
-        $role = session('user.role', 'customer');
+        $role = $request->user()?->role ?? 'customer';
 
         if ($role === 'customer') {
             return redirect()->route('products.index');
         }
 
-        $branch = $request->get('branch', 'all');
-        $period = $request->get('period', 'this_month');
+        $branch = (string) $request->get('branch', 'all');
+        $period = (string) $request->get('period', 'this_year');
 
-        // If user is branch admin, prioritize or default their branch
-        $userBranch = session('user.branch');
+        $userBranch = $request->user()?->branch;
         if ($role === 'admin' && $userBranch && $userBranch !== 'all' && ! $request->has('branch')) {
             $branch = $userBranch;
         }
 
-        $reportData = ReportRepository::getSalesReport($branch, $period);
+        $reportData = Order::buildSalesReport($branch, $period);
 
         return view('reports.index', array_merge($reportData, [
             'role' => $role,

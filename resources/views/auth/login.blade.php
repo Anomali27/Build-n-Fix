@@ -107,9 +107,9 @@
     @auth
         <div class="space-y-4">
             <x-alert type="info" title="Already signed in">
-                You are already signed in as <strong>{{ session('user.name') }}</strong>.
+                You are already signed in as <strong>{{ auth()->user()?->name }}</strong>.
             </x-alert>
-            <a href="{{ session('user.role') === 'admin' ? route('admin.dashboard') : (session('user.role') === 'owner' ? route('owner.dashboard') : route('home')) }}"
+            <a href="{{ in_array(auth()->user()?->role, ['admin', 'owner']) ? route('dashboard') : route('home') }}"
                 class="block w-full text-center py-3 px-4 bg-[#F97316] hover:bg-orange-600 text-white font-bold text-sm rounded-lg transition-colors">
                 Go to Dashboard &rarr;
             </a>

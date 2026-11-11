@@ -74,25 +74,7 @@
                         Gambar Sampul</label>
                     <input type="url" id="image" name="image" value="{{ old('image', $category['image'] ?? '') }}"
                         class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F97316]/50">
-                </div>
-
-                <!-- Tersedia di Cabang -->
-                <div>
-                    <label class="block text-xs font-extrabold text-gray-800 uppercase tracking-wider mb-2">Tersedia di
-                        Lokasi Cabang</label>
-                    <div class="grid grid-cols-3 gap-4 pt-1">
-                        @php
-                            $activeBranches = $category['branches'] ?? ['Serdam', 'Gajahmada', 'Kota Baru'];
-                        @endphp
-                        @foreach(['Serdam', 'Gajahmada', 'Kota Baru'] as $bName)
-                            <label
-                                class="flex items-center gap-2.5 p-3 rounded-2xl bg-gray-50 border border-gray-200 text-xs font-bold text-gray-800 cursor-pointer hover:bg-orange-50 hover:border-orange-200 transition-all">
-                                <input type="checkbox" name="branches[]" value="{{ $bName }}" {{ in_array($bName, $activeBranches) ? 'checked' : '' }}
-                                    class="w-4 h-4 text-[#F97316] rounded border-gray-300 focus:ring-[#F97316]">
-                                <span>Cabang {{ $bName }}</span>
-                            </label>
-                        @endforeach
-                    </div>
+                    @error('image') <p class="text-rose-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
 
                 <!-- ACTION BUTTONS -->

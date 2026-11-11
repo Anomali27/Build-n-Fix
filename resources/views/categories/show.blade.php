@@ -26,7 +26,7 @@
         <div class="relative z-10 max-w-2xl">
             <div class="flex items-center gap-3 mb-3">         
                 @auth
-                    @if(in_array(session('user.role'), ['admin', 'owner']))
+                    @if(in_array(auth()->user()?->role, ['admin', 'owner']))
                         <a href="{{ route('categories.edit', $category['slug'] ?? $category['id']) }}" class="px-3 py-1 bg-white/20 hover:bg-white/30 text-white font-bold text-[10px] rounded-full backdrop-blur-md transition-colors flex items-center gap-1">
                             <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -191,7 +191,7 @@
         <main class="lg:col-span-9">
             @forelse($products as $product)
                 @if($loop->first)
-                    <div class="{{ $view === 'list' ? 'space-y-4' : (in_array(($role ?? session('user.role')), ['admin', 'owner']) ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5' : 'grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-6') }}">
+                    <div class="{{ $view === 'list' ? 'space-y-4' : (in_array(($role ?? auth()->user()?->role), ['admin', 'owner']) ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5' : 'grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-6') }}">
                 @endif
 
                 <x-product-card :product="$product" :view="$view" />

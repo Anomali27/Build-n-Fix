@@ -2,122 +2,77 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\AuthService;
+use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\RegisterRequest;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class AuthController extends Controller
 {
-    public function __construct(
-        protected AuthService $authService
-    ) {}
-
-    // ──────────────────────────────────────────────
-    // LOGIN
-    // ──────────────────────────────────────────────
-
     public function showLoginForm(): View|RedirectResponse
     {
-        if ($this->authService->check()) {
-            return redirect()->to(
-                $this->authService->getRedirectUrl(
-                    $this->authService->user()['role'] ?? 'customer'
-                )
-            );
+        if (Auth::check()) {
+            return redirect()->to(Auth::user()->homeUrl());
         }
 
         return view('auth.login');
     }
 
-    public function login(Request $request): RedirectResponse
+    public function login(LoginRequest $request): RedirectResponse
     {
-        $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required'],
-        ], [
-            'email.required' => 'Email address is required.',
-            'email.email' => 'Please enter a valid email address.',
-            'password.required' => 'Password is required.',
-        ]);
-
-        $result = $this->authService->attempt(
-            (string) $request->input('email'),
-            (string) $request->input('password')
-        );
-
-        if (! $result['success']) {
+        if (! Auth::attempt($request->credentials())) {
             return back()
                 ->withInput($request->only('email'))
-                ->with('auth_error', $result['message']);
+                ->with('auth_error', 'The email or password you entered is incorrect. Please try again.');
         }
 
-        return redirect()
-            ->to($result['redirect'])
-            ->with('success', $result['message']);
-    }
+        $request->session()->regenerate();
 
-    // ──────────────────────────────────────────────
-    // REGISTER
-    // ──────────────────────────────────────────────
+        /** @var User $user */
+        $user = Auth::user();
+
+        return redirect()
+            ->to($user->homeUrl())
+            ->with('success', 'Welcome back, '.$user->name.'!');
+    }
 
     public function showRegisterForm(): View|RedirectResponse
     {
-        if ($this->authService->check()) {
-            return redirect()->to(
-                $this->authService->getRedirectUrl(
-                    $this->authService->user()['role'] ?? 'customer'
-                )
-            );
+        if (Auth::check()) {
+            return redirect()->to(Auth::user()->homeUrl());
         }
 
         return view('auth.register');
     }
 
-    public function register(Request $request): RedirectResponse
+    public function register(RegisterRequest $request): RedirectResponse
     {
-        $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255'],
-            'phone' => ['required', 'string', 'max:20'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'terms' => ['accepted'],
-        ], [
-            'name.required' => 'Full name is required.',
-            'email.required' => 'Email address is required.',
-            'email.email' => 'Please enter a valid email address.',
-            'phone.required' => 'Phone number is required.',
-            'password.required' => 'Password is required.',
-            'password.min' => 'Password must be at least 8 characters.',
-            'password.confirmed' => 'Password confirmation does not match.',
-            'terms.accepted' => 'You must agree to the Terms of Service and Privacy Policy.',
-        ]);
+        $email = strtolower(trim((string) $request->validated('email')));
 
-        $result = $this->authService->registerCustomer([
-            'name' => (string) $request->input('name'),
-            'email' => (string) $request->input('email'),
-            'phone' => (string) $request->input('phone'),
-            'password' => (string) $request->input('password'),
-        ]);
-
-        if (! $result['success']) {
+        if (User::where('email', $email)->exists()) {
             return back()
                 ->withInput($request->except('password', 'password_confirmation'))
-                ->with('auth_error', $result['message']);
+                ->with('auth_error', 'This email address is already registered. Please use a different email or sign in.');
         }
 
+        $user = User::registerCustomer($request->safe()->only(['name', 'email', 'phone', 'password']));
+
+        Auth::login($user);
+        $request->session()->regenerate();
+
         return redirect()
-            ->to($result['redirect'])
-            ->with('success', $result['message']);
+            ->to($user->homeUrl())
+            ->with('success', 'Account created successfully! Welcome to Build n Fix.');
     }
 
-    // ──────────────────────────────────────────────
-    // LOGOUT
-    // ──────────────────────────────────────────────
-
-    public function logout(): RedirectResponse
+    public function logout(Request $request): RedirectResponse
     {
-        $this->authService->logout();
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
         return redirect()->route('login')->with('success', 'You have been signed out successfully.');
     }

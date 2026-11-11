@@ -1,35 +1,142 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container mx-auto px-4 lg:px-8 py-8" x-data="{ showClearModal: false }">
-    
+@php
+    $groups = $cart['groups'] ?? [];
+    $allValidIds = [];
+    $summaryGroups = [];
+
+    foreach ($groups as $grp) {
+        foreach ($grp['valid_item_ids'] ?? [] as $vid) {
+            $allValidIds[] = (int) $vid;
+        }
+
+        $summaryGroups[] = [
+            'branch_id' => (int) $grp['branch_id'],
+            'branch_name' => $grp['branch_name'],
+            'valid_item_ids' => array_map('intval', $grp['valid_item_ids'] ?? []),
+            'items' => array_map(fn (array $it): array => [
+                'id' => (int) $it['id'],
+                'subtotal' => (int) $it['subtotal'],
+                'quantity' => (int) $it['quantity'],
+            ], $grp['items'] ?? []),
+        ];
+    }
+@endphp
+
+<div class="container mx-auto px-4 lg:px-8 py-8"
+     x-data="{
+        showClearModal: false,
+        selectedIds: @js($allValidIds),
+        allValidIds: @js($allValidIds),
+        groups: @js($summaryGroups),
+
+        toggleItem(id) {
+            if (this.selectedIds.includes(id)) {
+                this.selectedIds = this.selectedIds.filter(item => item !== id);
+            } else {
+                this.selectedIds = [...this.selectedIds, id];
+            }
+        },
+        isBranchFullyChecked(validIds) {
+            return validIds.length > 0 && validIds.every(id => this.selectedIds.includes(id));
+        },
+        toggleBranch(validIds) {
+            if (this.isBranchFullyChecked(validIds)) {
+                this.selectedIds = this.selectedIds.filter(id => !validIds.includes(id));
+            } else {
+                const merged = new Set([...this.selectedIds, ...validIds]);
+                this.selectedIds = Array.from(merged);
+            }
+        },
+        isAllChecked() {
+            return this.allValidIds.length > 0 && this.allValidIds.every(id => this.selectedIds.includes(id));
+        },
+        toggleAll() {
+            if (this.isAllChecked()) {
+                this.selectedIds = [];
+            } else {
+                this.selectedIds = [...this.allValidIds];
+            }
+        },
+        selectedCount() {
+            return this.selectedIds.length;
+        },
+        selectedBreakdowns() {
+            const list = [];
+            for (const g of this.groups) {
+                let sub = 0;
+                let count = 0;
+                for (const it of g.items) {
+                    if (this.selectedIds.includes(it.id)) {
+                        sub += it.subtotal;
+                        count++;
+                    }
+                }
+                if (count > 0) {
+                    list.push({
+                        branch_id: g.branch_id,
+                        branch_name: g.branch_name,
+                        count: count,
+                        subtotal: sub
+                    });
+                }
+            }
+            return list;
+        },
+        selectedSubtotal() {
+            let total = 0;
+            for (const g of this.groups) {
+                for (const it of g.items) {
+                    if (this.selectedIds.includes(it.id)) {
+                        total += it.subtotal;
+                    }
+                }
+            }
+            return total;
+        },
+        formatRupiah(amount) {
+            return 'Rp ' + (amount || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        }
+     }">
+
     <!-- 1. BREADCRUMB -->
     <nav class="flex items-center gap-2 text-xs font-semibold text-gray-500 mb-6">
         <a href="{{ route('home') }}" class="hover:text-[#F97316] transition-colors">Home</a>
         <span class="text-gray-400">&gt;</span>
-        <span class="text-[#F97316] font-bold">Cart</span>
+        <span class="text-[#F97316] font-bold">Keranjang Belanja</span>
     </nav>
 
     <!-- 2. PAGE HEADER -->
     <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
             <h1 class="text-2xl lg:text-3xl font-black text-[#111111] tracking-tight uppercase">
-                Shopping Cart
+                Keranjang Belanja
             </h1>
             <p class="text-xs lg:text-sm text-gray-500 font-medium mt-1">
-                Review your selected building materials before checkout.
+                Item dikelompokkan per cabang. Centang beberapa item untuk checkout sekaligus atau langsung checkout per 1 cabang.
             </p>
         </div>
 
         @if(($cart['item_count'] ?? 0) > 0)
-            <button type="button" 
-                    @click="showClearModal = true"
-                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs font-bold rounded-xl transition-colors w-fit">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                <span>Clear Cart</span>
-            </button>
+            <div class="flex items-center gap-3">
+                <label class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-800 cursor-pointer hover:border-[#F97316]/50">
+                    <input type="checkbox"
+                           :checked="isAllChecked()"
+                           @change="toggleAll()"
+                           class="w-4 h-4 rounded border-gray-300 text-[#F97316] focus:ring-[#F97316]">
+                    <span>Pilih Semua ({{ $cart['item_count'] }})</span>
+                </label>
+
+                <button type="button"
+                        @click="showClearModal = true"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs font-bold rounded-xl transition-colors w-fit">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    <span>Kosongkan Semua</span>
+                </button>
+            </div>
         @endif
     </div>
 
@@ -57,102 +164,136 @@
     <!-- 3. CART CONTENT OR EMPTY STATE -->
     @if(($cart['item_count'] ?? 0) > 0)
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            
-            <!-- LEFT COLUMN: Cart Items List (8 Cols) -->
-            <div class="lg:col-span-8 space-y-4">
-                <div class="flex items-center justify-between pb-2 border-b border-gray-100">
-                    <h2 class="text-xs font-extrabold uppercase text-gray-400 tracking-wider">
-                        Item Dipesan ({{ $cart['item_count'] }} Produk)
-                    </h2>
-                    <span class="text-xs text-gray-500 font-medium">
-                        Total Quantity: <strong>{{ $cart['total_quantity'] }} Sak</strong>
-                    </span>
-                </div>
 
-                <!-- Loop Cart Items -->
-                @foreach($cart['items'] as $item)
-                    <x-cart-item :item="$item" />
+            <!-- LEFT COLUMN: Cart Grouped Per Branch (8 Cols) -->
+            <div class="lg:col-span-8 space-y-6">
+                @foreach($groups as $group)
+                    <div class="bg-white rounded-3xl border border-gray-200/80 shadow-xs overflow-hidden">
+
+                        <!-- Branch Group Header -->
+                        <div class="px-5 py-4 bg-gradient-to-r from-orange-50/80 to-amber-50/40 border-b border-orange-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="flex items-center gap-3">
+                                <input type="checkbox"
+                                       :checked="isBranchFullyChecked(@js($group['valid_item_ids']))"
+                                       @change="toggleBranch(@js($group['valid_item_ids']))"
+                                       @if(count($group['valid_item_ids']) === 0) disabled @endif
+                                       aria-label="Pilih semua produk Cabang {{ $group['branch_name'] }}"
+                                       class="w-4 h-4 rounded border-gray-300 text-[#F97316] focus:ring-[#F97316] disabled:opacity-40 cursor-pointer">
+
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="inline-flex items-center gap-1.5 text-sm font-black text-[#111111]">
+                                            <span class="w-2 h-2 rounded-full bg-[#F97316]"></span>
+                                            Keranjang Cabang {{ $group['branch_name'] }}
+                                        </span>
+                                        <span class="px-2 py-0.5 rounded-full bg-white text-[#F97316] border border-orange-200 text-[10px] font-extrabold">
+                                            {{ $group['item_count'] }} Produk
+                                        </span>
+                                    </div>
+                                    <p class="text-[11px] text-gray-500 font-medium">
+                                        {{ $group['short_address'] ?: $group['city'] }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-2 pl-7 sm:pl-0">
+                                @if($group['is_valid'])
+                                    <a href="{{ route('checkout.index', ['branch' => $group['branch_id']]) }}"
+                                       class="px-4 py-2 rounded-xl bg-[#F97316] hover:bg-orange-600 text-white text-xs font-extrabold shadow-sm shadow-orange-500/20 transition-all whitespace-nowrap">
+                                        Checkout Cabang {{ $group['branch_name'] }}
+                                    </a>
+                                @else
+                                    <button type="button" disabled
+                                            class="px-4 py-2 rounded-xl bg-gray-200 text-gray-400 text-xs font-extrabold cursor-not-allowed whitespace-nowrap">
+                                        Perbaiki Stok Dahulu
+                                    </button>
+                                @endif
+                            </div>
+                        </div>
+
+                        <!-- Branch Items List -->
+                        <div>
+                            @foreach($group['items'] as $item)
+                                <x-cart-item :item="$item" />
+                            @endforeach
+                        </div>
+
+                        <!-- Branch Footer Subtotal -->
+                        <div class="px-5 py-3 bg-gray-50/70 border-t border-gray-100 flex items-center justify-between text-xs">
+                            <span class="font-semibold text-gray-500">
+                                Subtotal Cabang {{ $group['branch_name'] }} ({{ $group['total_quantity'] }} unit)
+                            </span>
+                            <span class="font-black text-sm text-[#111111]">
+                                Rp {{ number_format($group['subtotal'], 0, ',', '.') }}
+                            </span>
+                        </div>
+
+                    </div>
                 @endforeach
             </div>
 
-            <!-- RIGHT COLUMN: Order Summary (4 Cols) -->
+            <!-- RIGHT COLUMN: Multi-Select Summary (4 Cols) -->
             <div class="lg:col-span-4 sticky top-24">
-                <div class="bg-white rounded-3xl border border-gray-200/80 p-6 shadow-sm space-y-6">
-                    
-                    <!-- Branch Information Banner -->
-                    <div class="bg-orange-50/70 border border-orange-200/80 rounded-2xl p-4 space-y-1.5">
-                        <div class="flex items-center justify-between">
-                            <span class="text-[10px] font-extrabold uppercase text-orange-800 tracking-wider">Order Branch</span>
-                            <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-[#F97316] text-white shadow-xs">
-                                Cabang {{ $cart['branch_name'] }}
-                            </span>
-                        </div>
-                        <p class="text-[11px] text-amber-900 leading-relaxed font-medium">
-                            ⚠️ All items in this cart must be purchased from the same branch.
+                <div class="bg-white rounded-3xl border border-gray-200/80 p-6 shadow-sm space-y-5">
+
+                    <div class="border-b border-gray-100 pb-3">
+                        <h3 class="text-sm font-black text-[#111111] uppercase tracking-wider">
+                            Ringkasan Checkout
+                        </h3>
+                        <p class="text-[11px] text-gray-500 font-medium mt-0.5">
+                            <span x-text="selectedCount()"></span> produk dari <span x-text="selectedBreakdowns().length"></span> cabang dicentang
                         </p>
                     </div>
 
-                    <!-- Order Summary Breakdown -->
-                    <div class="space-y-3">
-                        <h3 class="text-xs font-extrabold uppercase text-gray-400 tracking-wider border-b border-gray-100 pb-2">
-                            Order Summary
-                        </h3>
+                    <!-- Selected Branch Breakdown -->
+                    <div class="space-y-2.5 text-xs">
+                        <template x-if="selectedBreakdowns().length === 0">
+                            <div class="p-3 bg-gray-50 rounded-xl border border-gray-100 text-gray-500 font-medium text-center">
+                                Belum ada produk yang dicentang. Centang produk di sebelah kiri atau gunakan tombol checkout per cabang.
+                            </div>
+                        </template>
 
-                        <div class="flex justify-between items-center text-xs text-gray-600 font-medium">
-                            <span>Subtotal</span>
-                            <span class="font-bold text-gray-900">
-                                Rp {{ number_format($cart['subtotal'], 0, ',', '.') }}
-                            </span>
-                        </div>
+                        <template x-for="b in selectedBreakdowns()" :key="b.branch_id">
+                            <div class="flex justify-between items-center text-gray-700 font-medium">
+                                <span>Cabang <strong x-text="b.branch_name"></strong> (<span x-text="b.count"></span> item)</span>
+                                <span class="font-bold text-gray-900" x-text="formatRupiah(b.subtotal)"></span>
+                            </div>
+                        </template>
 
-                        <div class="flex justify-between items-center text-xs text-gray-600 font-medium">
-                            <span>Delivery Fee</span>
+                        <div class="flex justify-between items-center text-xs text-gray-600 font-medium pt-2 border-t border-gray-100">
+                            <span>Biaya Pengiriman</span>
                             <span class="font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 text-[11px]">
                                 {{ $cart['delivery_fee_label'] }}
                             </span>
                         </div>
 
                         <div class="pt-3 border-t border-gray-100 flex justify-between items-center">
-                            <span class="text-sm font-black text-gray-900">Total</span>
-                            <span class="text-xl font-black text-[#F97316]">
-                                Rp {{ number_format($cart['total'], 0, ',', '.') }}
-                            </span>
+                            <span class="text-sm font-black text-gray-900">Total Terpilih</span>
+                            <span class="text-xl font-black text-[#F97316]" x-text="formatRupiah(selectedSubtotal())"></span>
                         </div>
                     </div>
 
-                    <!-- Error Notice if Stock Exceeded or Out of Stock -->
-                    @if($cart['has_out_of_stock_items'] || $cart['has_stock_errors'])
-                        <div class="p-3 bg-rose-50 border border-rose-200 rounded-2xl text-[11px] font-bold text-rose-700 leading-relaxed">
-                            ❌ Cannot proceed to checkout. Please adjust quantities or remove out-of-stock items.
-                        </div>
-                    @endif
+                    <!-- Multi-Selection Checkout Form -->
+                    <form method="GET" action="{{ route('checkout.index') }}" class="space-y-2.5 pt-1">
+                        <template x-for="id in selectedIds" :key="id">
+                            <input type="hidden" name="items[]" :value="id">
+                        </template>
 
-                    <!-- Action Buttons -->
-                    <div class="space-y-2.5 pt-2">
-                        @if($cart['is_valid'])
-                            <a href="{{ route('checkout.index') }}" 
-                               class="w-full py-3.5 bg-[#F97316] hover:bg-orange-600 text-white rounded-2xl text-xs font-extrabold shadow-md shadow-orange-500/20 active:scale-98 transition-all flex items-center justify-center gap-2 group">
-                                <span>Proceed to Checkout</span>
-                                <svg class="w-4 h-4 text-white group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                </svg>
-                            </a>
-                        @else
-                            <button type="button" 
-                                    disabled 
-                                    class="w-full py-3.5 bg-gray-200 text-gray-400 rounded-2xl text-xs font-extrabold cursor-not-allowed flex items-center justify-center gap-2">
-                                <span>Proceed to Checkout</span>
-                                <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                </svg>
-                            </button>
-                        @endif
+                        <button type="submit"
+                                :disabled="selectedCount() === 0"
+                                :class="selectedCount() === 0 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-[#F97316] hover:bg-orange-600 text-white shadow-md shadow-orange-500/20 active:scale-98'"
+                                class="w-full py-3.5 rounded-2xl text-xs font-extrabold transition-all flex items-center justify-center gap-2">
+                            <span>Checkout Terpilih (<span x-text="selectedCount()"></span>)</span>
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                            </svg>
+                        </button>
 
-                        <a href="{{ route('categories.index') }}" 
+                        <a href="{{ route('products.index') }}"
                            class="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-2xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5">
-                            <span>Continue Shopping</span>
+                            <span>Lanjut Belanja</span>
                         </a>
-                    </div>
+                    </form>
 
                 </div>
             </div>
@@ -160,25 +301,19 @@
         </div>
     @else
         <!-- EMPTY CART STATE -->
-        <x-empty-state 
-            title="Your cart is empty" 
-            message="Start shopping for quality building materials from Build n Fix." 
-            :actionUrl="route('categories.index')" 
-            actionText="Start Shopping" 
+        <x-empty-state
+            title="Keranjang belanja masih kosong"
+            message="Silakan pilih produk bahan bangunan terbaik dari berbagai cabang Build n Fix."
+            :actionUrl="route('products.index')"
+            actionText="Mulai Belanja"
         />
     @endif
 
     <!-- CLEAR CART CONFIRMATION MODAL -->
-    <div x-show="showClearModal" 
-         x-cloak 
-         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
-         x-transition:enter="transition ease-out duration-200"
-         x-transition:enter-start="opacity-0"
-         x-transition:enter-end="opacity-100"
-         x-transition:leave="transition ease-in duration-150"
-         x-transition:leave-start="opacity-100"
-         x-transition:leave-end="opacity-0">
-        
+    <div x-show="showClearModal"
+         x-cloak
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+
         <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl border border-gray-200 text-center space-y-4"
              @click.away="showClearModal = false">
             <div class="w-14 h-14 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto font-bold border border-rose-200">
@@ -186,66 +321,28 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
             </div>
-            
+
             <div>
-                <h3 class="text-lg font-extrabold text-[#111111]">Are you sure you want to clear your cart?</h3>
+                <h3 class="text-lg font-extrabold text-[#111111]">Kosongkan seluruh keranjang?</h3>
                 <p class="text-xs text-gray-500 mt-2 leading-relaxed font-medium">
-                    This action will remove all selected building materials from your cart.
+                    Seluruh item dari semua cabang di keranjang Anda akan dihapus permanen.
                 </p>
             </div>
 
             <div class="flex items-center gap-3 pt-3 border-t border-gray-100">
                 <button type="button" @click="showClearModal = false" class="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-2xl text-xs font-bold transition-colors">
-                    Cancel
+                    Batal
                 </button>
                 <form method="POST" action="{{ route('cart.clear') }}" class="w-full">
                     @csrf
                     @method('DELETE')
                     <button type="submit" class="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-xs font-extrabold shadow-md shadow-rose-600/20 transition-all">
-                        Clear Cart
+                        Ya, Kosongkan
                     </button>
                 </form>
             </div>
         </div>
     </div>
-
-    <!-- BRANCH MISMATCH MODAL -->
-    @if(session('branch_mismatch'))
-        @php
-            $mismatch = session('branch_mismatch');
-        @endphp
-        <div x-data="{ open: true }" x-show="open" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-            <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-gray-200 text-center space-y-4">
-                <div class="w-14 h-14 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto font-bold border border-amber-200">
-                    🏪
-                </div>
-                
-                <div>
-                    <h3 class="text-lg font-black text-[#111111]">Your cart contains products from another branch.</h3>
-                    <p class="text-xs text-gray-600 mt-2 leading-relaxed font-medium">
-                        Your cart currently contains products from <strong>Cabang {{ $mismatch['existing_branch'] ?? 'Serdam' }}</strong>. You cannot add products from <strong>Cabang {{ $mismatch['new_branch'] ?? 'Gajahmada' }}</strong> to the same transaction.
-                    </p>
-                </div>
-
-                <div class="space-y-2 pt-3 border-t border-gray-100">
-                    <button type="button" @click="open = false" class="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-2xl text-xs font-bold transition-colors">
-                        Continue with {{ $mismatch['existing_branch'] ?? 'Serdam' }}
-                    </button>
-                    
-                    <form method="POST" action="{{ route('cart.store') }}">
-                        @csrf
-                        <input type="hidden" name="product_id" value="{{ $mismatch['product_id'] }}">
-                        <input type="hidden" name="quantity" value="{{ $mismatch['quantity'] }}">
-                        <input type="hidden" name="branch" value="{{ $mismatch['branch'] }}">
-                        <input type="hidden" name="force" value="1">
-                        <button type="submit" class="w-full py-3 bg-[#F97316] hover:bg-orange-600 text-white rounded-2xl text-xs font-extrabold shadow-md shadow-orange-500/20 transition-all">
-                            Remove existing cart & add new item
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    @endif
 
 </div>
 @endsection

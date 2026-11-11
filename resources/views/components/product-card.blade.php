@@ -1,33 +1,45 @@
 @props(['product', 'view' => 'grid', 'selectedBranch' => null])
 
 @php
-    $role = session('user.role', 'customer');
-    $imageUrl = isset($product['image']) && $product['image'] 
+    $role = auth()->user()?->role ?? 'customer';
+    $imageUrl = isset($product['image']) && $product['image']
         ? (\Illuminate\Support\Str::startsWith($product['image'], ['http://', 'https://']) ? $product['image'] : asset($product['image']))
         : null;
 
-    $catSlug = $product['category_slug'] ?? 'semen-mortar';
     $prodSlug = $product['slug'] ?? \Illuminate\Support\Str::slug($product['name'] ?? 'product');
+    $detailRoute = route('products.show', $prodSlug);
 
-    $detailRoute = Route::has('categories.products.show') 
-        ? route('categories.products.show', ['category' => $catSlug, 'product' => $prodSlug]) 
-        : route('products.show', $product['id']);
+    $branchStocks = $product instanceof \App\Models\Product && $product->relationLoaded('branchStocks')
+        ? $product->branchStocks
+        : collect();
 
-    // Determine stock status based on selected branch or general stock
-    $stockStatus = 'Tersedia';
-    if (!empty($selectedBranch) && isset($product['stock_by_branch'][$selectedBranch])) {
-        $stockStatus = $product['stock_by_branch'][$selectedBranch];
-    } elseif (!empty($product['stock_by_branch'])) {
-        $statuses = array_values($product['stock_by_branch']);
-        if (in_array('Tersedia', $statuses)) {
-            $stockStatus = 'Tersedia';
-        } elseif (in_array('Stok Terbatas', $statuses)) {
-            $stockStatus = 'Stok Terbatas';
+    $displayPrice = $branchStocks->isNotEmpty()
+        ? (int) $branchStocks->min('price')
+        : (int) ($product['price'] ?? 0);
+
+    $hasDifferentBranchPrices = $branchStocks->pluck('price')->unique()->count() > 1;
+
+    $stockStatus = 'available';
+    if ($branchStocks->isNotEmpty()) {
+        $maxStock = (int) $branchStocks->max('stock');
+        if ($maxStock <= 0) {
+            $stockStatus = 'out_of_stock';
+        } elseif ($maxStock <= 10) {
+            $stockStatus = 'low_stock';
+        }
+    } elseif (! empty($product['stock_by_branch'])) {
+        $statuses = ! empty($selectedBranch) && isset($product['stock_by_branch'][$selectedBranch])
+            ? [$product['stock_by_branch'][$selectedBranch]]
+            : array_values($product['stock_by_branch']);
+
+        if (in_array('Tersedia', $statuses, true)) {
+            $stockStatus = 'available';
+        } elseif (in_array('Stok Terbatas', $statuses, true)) {
+            $stockStatus = 'low_stock';
         } else {
-            $stockStatus = 'Habis';
+            $stockStatus = 'out_of_stock';
         }
     }
-    $isOutOfStock = $stockStatus === 'Habis';
 @endphp
 
 @if($view === 'list')
@@ -62,14 +74,19 @@
                 </a>
 
                 <div class="flex items-center gap-2 pt-1">
-                    <x-status-badge :status="$stockStatus === 'Habis' ? 'out_of_stock' : ($stockStatus === 'Stok Terbatas' ? 'low_stock' : 'available')" />
+                    <x-status-badge :status="$stockStatus" />
                 </div>
             </div>
         </div>
 
         <div class="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-3 pt-4 sm:pt-0 border-t sm:border-t-0 border-gray-100">
-            <div class="font-extrabold text-xl text-[#111111]">
-                Rp {{ number_format($product['price'] ?? 0, 0, ',', '.') }}
+            <div class="text-right">
+                @if($hasDifferentBranchPrices)
+                    <span class="block text-[10px] font-semibold text-gray-400">Mulai dari</span>
+                @endif
+                <div class="font-extrabold text-xl text-[#111111]">
+                    Rp {{ number_format($displayPrice, 0, ',', '.') }}
+                </div>
             </div>
 
             <div class="flex items-center gap-2">
@@ -111,7 +128,7 @@
 
             <!-- Stock Pill Overlay -->
             <div class="absolute top-3 left-3">
-                <x-status-badge :status="$stockStatus === 'Habis' ? 'out_of_stock' : ($stockStatus === 'Stok Terbatas' ? 'low_stock' : 'available')" />
+                <x-status-badge :status="$stockStatus" />
             </div>
 
             @if(isset($product['sku']) && $product['sku'])
@@ -137,8 +154,13 @@
             </div>
 
             <div class="pt-3 border-t border-gray-100 space-y-2 mt-auto">
-                <div class="font-extrabold text-lg text-[#111111]">
-                    Rp {{ number_format($product['price'] ?? 0, 0, ',', '.') }}
+                <div>
+                    @if($hasDifferentBranchPrices)
+                        <span class="block text-[10px] font-semibold text-gray-400">Mulai dari</span>
+                    @endif
+                    <div class="font-extrabold text-lg text-[#111111]">
+                        Rp {{ number_format($displayPrice, 0, ',', '.') }}
+                    </div>
                 </div>
 
                 @if($role === 'admin')

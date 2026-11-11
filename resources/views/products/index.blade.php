@@ -7,9 +7,7 @@
     <nav class="flex items-center gap-2 text-xs font-semibold text-gray-500 mb-6">
         <a href="{{ route('home') }}" class="hover:text-[#F97316] transition-colors">Home</a>
         <span class="text-gray-400">&gt;</span>
-        <a href="{{ route('categories.index') }}" class="hover:text-[#F97316] transition-colors">Category</a>
-        <span class="text-gray-400">&gt;</span>
-        <span class="text-[#F97316] font-bold">Product</span>
+        <span class="text-[#F97316] font-bold">Produk</span>
     </nav>
 
     <!-- FLASH MESSAGES -->
@@ -27,15 +25,20 @@
     <!-- 2. PAGE HEADER -->
     <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
+            @if(!empty($isTopPopularDefault))
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 text-[#F97316] border border-orange-200 font-extrabold text-[11px] uppercase tracking-wider mb-2">
+                    Top 20 Produk Paling Banyak Dibeli
+                </span>
+            @endif
             <h1 class="text-3xl md:text-4xl font-extrabold text-[#111111] tracking-tight">
                 {{ $pageTitle }}
             </h1>
             <p class="text-gray-600 text-sm md:text-base mt-2 font-normal">
-                Temukan lebih banyak produk bahan bangunan yang tersedia di Build n Fix.
+                {{ !empty($isTopPopularDefault) ? 'Menampilkan 20 produk yang paling banyak dibeli. Pilih kategori di sebelah kiri untuk melihat seluruh produk per kategori.' : 'Temukan lebih banyak produk bahan bangunan yang tersedia di Build n Fix.' }}
             </p>
         </div>
 
-        @if(($role ?? session('user.role')) === 'admin')
+        @if(($role ?? auth()->user()?->role) === 'admin')
             <a href="{{ route('products.create') }}" 
                class="px-5 py-3 rounded-2xl bg-[#F97316] hover:bg-[#EA580C] text-white font-extrabold text-xs shadow-lg shadow-orange-500/25 flex items-center gap-2 transition-all w-fit shrink-0">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -60,17 +63,8 @@
                 @if(request('category'))
                     <input type="hidden" name="category" value="{{ request('category') }}">
                 @endif
-                @if(request('min_price'))
-                    <input type="hidden" name="min_price" value="{{ request('min_price') }}">
-                @endif
-                @if(request('max_price'))
-                    <input type="hidden" name="max_price" value="{{ request('max_price') }}">
-                @endif
                 @foreach((array) request('brands') as $b)
                     <input type="hidden" name="brands[]" value="{{ $b }}">
-                @endforeach
-                @foreach((array) request('branches') as $br)
-                    <input type="hidden" name="branches[]" value="{{ $br }}">
                 @endforeach
                 @if(request('q'))
                     <input type="hidden" name="q" value="{{ request('q') }}">
@@ -115,6 +109,9 @@
         <!-- LEFT FILTER SIDEBAR -->
         <aside class="lg:col-span-3 space-y-6">
             <form method="GET" action="{{ route('products.index') }}" id="filterForm">
+                @if(request('category') && strtolower((string) request('category')) !== 'all')
+                    <input type="hidden" name="category" value="{{ request('category') }}">
+                @endif
                 <input type="hidden" name="sort" value="{{ $sort }}">
                 <input type="hidden" name="view" value="{{ $view }}">
                 @if(request('q'))
@@ -122,14 +119,15 @@
                 @endif
 
                 <!-- SECTION 1: CATEGORY FILTER -->
-                <x-filter-section title="Category" :resetUrl="route('products.index')">
-                    <div class="space-y-1 max-h-[300px] overflow-y-auto pr-1">
+                <x-filter-section title="Kategori" :resetUrl="route('products.index')">
+                    <div class="space-y-1 max-h-[340px] overflow-y-auto pr-1">
                         @php
                             $isAllCategoryActive = strtolower($selectedCategory) === 'all' || strtolower($selectedCategory) === 'semua' || empty($selectedCategory);
                         @endphp
-                        <a href="{{ route('products.index', array_merge(request()->except('category'), ['category' => 'all'])) }}" 
+                        <a href="{{ route('products.index', array_merge(request()->except(['category', 'brands']), ['category' => 'all'])) }}" 
                            class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all {{ $isAllCategoryActive ? 'bg-[#F97316] text-white shadow-md shadow-orange-500/20' : 'text-gray-700 hover:bg-gray-100' }}">
                             <span>Semua kategori</span>
+                            <span class="text-[10px] {{ $isAllCategoryActive ? 'text-white/90' : 'text-gray-400' }}">Top 20</span>
                         </a>
 
                         @foreach($sidebarCategories as $catItem)
@@ -138,51 +136,16 @@
                                     || strtolower($selectedCategory) === strtolower($catItem['slug'])
                                     || strtolower($selectedCategory) === strtolower($catItem['name']);
                             @endphp
-                            <a href="{{ route('products.index', array_merge(request()->query(), ['category' => $catItem['id']])) }}" 
+                            <a href="{{ route('products.index', array_merge(request()->except(['brands', 'q']), ['category' => $catItem['slug']])) }}" 
                                class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all {{ $isActive ? 'bg-orange-50 text-[#F97316] font-bold border-l-4 border-[#F97316]' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
                                 <span>{{ $catItem['name'] }}</span>
+                                <span class="text-[10px] text-gray-400">({{ $catItem['count'] }})</span>
                             </a>
                         @endforeach
                     </div>
                 </x-filter-section>
 
-                <!-- SECTION 2: PRICE FILTER -->
-                <div class="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-sm space-y-4 mt-6">
-                    <h3 class="font-extrabold text-base text-[#111111] pb-3 border-b border-gray-100">
-                        Filter Harga
-                    </h3>
-                    <div class="space-y-3">
-                        <div>
-                            <label class="text-[11px] font-bold text-gray-500 block mb-1">Harga Minimum</label>
-                            <div class="relative">
-                                <span class="absolute left-3 top-2.5 text-xs text-gray-400 font-bold">Rp</span>
-                                <input type="number" 
-                                       name="min_price" 
-                                       placeholder="0" 
-                                       value="{{ $minPrice }}" 
-                                       class="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#F97316]">
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="text-[11px] font-bold text-gray-500 block mb-1">Harga Maksimum</label>
-                            <div class="relative">
-                                <span class="absolute left-3 top-2.5 text-xs text-gray-400 font-bold">Rp</span>
-                                <input type="number" 
-                                       name="max_price" 
-                                       placeholder="5.000.000" 
-                                       value="{{ $maxPrice }}" 
-                                       class="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#F97316]">
-                            </div>
-                        </div>
-
-                        <button type="submit" class="w-full py-2 bg-gray-900 hover:bg-[#F97316] text-white rounded-xl text-xs font-bold transition-colors shadow-sm">
-                            Terapkan Harga
-                        </button>
-                    </div>
-                </div>
-
-                <!-- SECTION 3: BRAND FILTER -->
+                <!-- SECTION 2: BRAND FILTER -->
                 <div class="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-sm space-y-4 mt-6">
                     <h3 class="font-extrabold text-base text-[#111111] pb-3 border-b border-gray-100">
                         Brand
@@ -219,33 +182,6 @@
                     </div>
                 </div>
 
-                <!-- SECTION 4: BRANCH FILTER -->
-                <div class="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-sm space-y-4 mt-6">
-                    <h3 class="font-extrabold text-base text-[#111111] pb-3 border-b border-gray-100">
-                        Tersedia di lokasi
-                    </h3>
-
-                    <div class="space-y-3">
-                        @foreach($sidebarBranches as $branch)
-                            @php
-                                $isBranchChecked = in_array($branch['name'], (array) $selectedBranches);
-                            @endphp
-                            <label class="flex items-center justify-between text-xs text-gray-700 font-medium cursor-pointer hover:text-gray-900 group">
-                                <div class="flex items-center gap-2.5">
-                                    <input type="checkbox" 
-                                           name="branches[]" 
-                                           value="{{ $branch['name'] }}" 
-                                           {{ $isBranchChecked ? 'checked' : '' }}
-                                           onchange="document.getElementById('filterForm').submit()"
-                                           class="w-4 h-4 text-[#F97316] rounded border-gray-300 focus:ring-[#F97316]">
-                                    <span class="{{ $isBranchChecked ? 'font-bold text-[#111111]' : '' }}">{{ $branch['name'] }}</span>
-                                </div>
-                                <span class="text-[10px] text-gray-400 font-medium">({{ $branch['count'] }})</span>
-                            </label>
-                        @endforeach
-                    </div>
-                </div>
-
                 <!-- RESET FILTER BUTTON -->
                 <div class="pt-2">
                     <a href="{{ route('products.index') }}" 
@@ -264,10 +200,10 @@
         <main class="lg:col-span-9">
             @forelse($products as $product)
                 @if($loop->first)
-                    <div class="{{ $view === 'list' ? 'space-y-4' : (in_array(($role ?? session('user.role')), ['admin', 'owner']) ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5' : 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5') }}">
+                    <div class="{{ $view === 'list' ? 'space-y-4' : (in_array(($role ?? auth()->user()?->role), ['admin', 'owner']) ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5' : 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5') }}">
                 @endif
                 
-                <x-product-card :product="$product" :view="$view" :selectedBranch="!empty($selectedBranches) ? $selectedBranches[0] : null" />
+                <x-product-card :product="$product" :view="$view" />
 
                 @if($loop->last)
                     </div>

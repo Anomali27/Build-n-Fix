@@ -2,11 +2,11 @@
 
 @section('content')
 <div class="container mx-auto px-4 lg:px-8 py-8">
-    
+
     @php
-        $role = $role ?? session('user.role', 'customer');
-        $user = $user ?? session('user', []);
-        $branch = $branch ?? session('user.branch', 'Serdam');
+        $role = $role ?? auth()->user()?->role ?? 'customer';
+        $user = $user ?? (auth()->user() ? ['name' => auth()->user()->name, 'email' => auth()->user()->email, 'role' => auth()->user()->role, 'branch' => auth()->user()->branch] : []);
+        $branch = $branch ?? auth()->user()?->branch ?? 'Serdam';
     @endphp
 
     <!-- ──────────────────────────────────────────────────────────── -->
@@ -33,14 +33,14 @@
 
             <!-- Quick Action Buttons -->
             <div class="flex flex-wrap items-center gap-2">
-                <a href="{{ route('products.create') }}" 
+                <a href="{{ route('products.create') }}"
                    class="px-4 py-2.5 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white font-bold text-xs shadow-md shadow-orange-500/20 flex items-center gap-2 transition-all">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                     </svg>
                     <span>Tambah Produk</span>
                 </a>
-                <a href="{{ route('stock.index') }}" 
+                <a href="{{ route('stock.index') }}"
                    class="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/10 flex items-center gap-2 transition-all">
                     <svg class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1.5 3 3.5 3h9c2 0 3.5-1 3.5-3V7M4 7c0-2 1.5-3 3.5-3h9c2 0 3.5 1 3.5 3M4 7h16" />
@@ -94,7 +94,7 @@
             <div class="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs flex items-center justify-between">
                 <div>
                     <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Peringatan Stok Rendah</p>
-                    <h3 class="text-2xl font-black text-rose-600 mt-1">{{ count($lowStockItems) }}</h3>
+                    <h3 class="text-2xl font-black text-rose-600 mt-1">{{ $lowStockCount }}</h3>
                     <p class="text-[11px] text-rose-500 font-semibold mt-1">Perlu Restock Segera</p>
                 </div>
                 <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold">
@@ -143,22 +143,10 @@
                                     </td>
                                     <td class="py-3.5 font-bold text-gray-900">Rp {{ number_format($ord['total'], 0, ',', '.') }}</td>
                                     <td class="py-3.5">
-                                        @php
-                                            $st = $ord['order_status'] ?? 'paid';
-                                            $badge = match($st) {
-                                                'paid' => 'bg-emerald-100 text-emerald-800',
-                                                'ready_to_pick_up' => 'bg-blue-100 text-blue-800',
-                                                'on_delivery' => 'bg-amber-100 text-amber-800',
-                                                'completed' => 'bg-gray-200 text-gray-800',
-                                                default => 'bg-gray-100 text-gray-700'
-                                            };
-                                        @endphp
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold {{ $badge }}">
-                                            {{ ucfirst(str_replace('_', ' ', $st)) }}
-                                        </span>
+                                        <x-status-badge :status="$ord['order_status'] ?? 'paid'" />
                                     </td>
                                     <td class="py-3.5 text-right">
-                                        <a href="{{ route('orders.index', ['order' => $ord['order_number']]) }}" 
+                                        <a href="{{ route('orders.index', ['order' => $ord['order_number']]) }}"
                                            class="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-[#F97316] hover:text-white font-bold text-[11px] transition-all">
                                             Detail
                                         </a>
@@ -190,7 +178,7 @@
                                 </div>
                                 <div class="text-right shrink-0">
                                     <span class="px-2 py-0.5 rounded-md bg-rose-600 text-white font-extrabold text-[10px]">
-                                        Total: {{ $item['total_stock'] }} {{ $item['unit'] }}
+                                        Min: {{ $item['min_branch_stock'] }} {{ $item['unit'] }}
                                     </span>
                                 </div>
                             </div>
@@ -201,7 +189,7 @@
                 </div>
 
                 <div class="mt-6 pt-4 border-t border-gray-100">
-                    <a href="{{ route('stock.index') }}" 
+                    <a href="{{ route('stock.index') }}"
                        class="w-full py-2.5 rounded-xl bg-gray-900 hover:bg-black text-white font-bold text-xs flex items-center justify-center gap-2 transition-all">
                         <span>Lihat Semua Kartu Stok 3 Cabang</span>
                         <svg class="w-4 h-4 text-[#F97316]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -226,7 +214,7 @@
                         Executive Owner Overview
                     </span>
                     <span class="text-xs text-gray-400">•</span>
-                    <span class="text-xs text-gray-300 font-semibold">Konsolidasi 3 Cabang: Serdam, Gajahmada, Kota Baru</span>
+                    <span class="text-xs text-gray-300 font-semibold">Konsolidasi {{ $branchCount }} Cabang Aktif</span>
                 </div>
                 <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">
                     Executive Dashboard — Build n Fix
@@ -237,7 +225,7 @@
             </div>
 
             <!-- Quick Link to Reports -->
-            <a href="{{ route('reports.index') }}" 
+            <a href="{{ route('reports.index') }}"
                class="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md shadow-purple-600/30 flex items-center gap-2 transition-all w-fit">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -246,22 +234,19 @@
             </a>
         </div>
 
-        <!-- 3 Branch Summary Cards -->
+        <!-- Branch Summary Cards -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            @foreach($salesReport['branch_summary'] as $bKey => $bData)
+            @foreach($salesReport['branch_summary'] ?? [] as $bData)
                 <div class="bg-white p-6 rounded-3xl border border-gray-200/80 shadow-xs relative overflow-hidden">
                     <div class="flex items-center justify-between mb-3">
                         <span class="px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 font-extrabold text-xs">
                             {{ $bData['branch_name'] }}
                         </span>
-                        <span class="text-emerald-600 font-extrabold text-xs flex items-center gap-1">
-                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                            </svg>
-                            {{ $bData['growth'] }}
+                        <span class="text-emerald-600 font-extrabold text-xs">
+                            {{ $bData['share_percentage'] }}% Omset
                         </span>
                     </div>
-                    <p class="text-xs text-gray-500 font-semibold">Omset Bulan Ini</p>
+                    <p class="text-xs text-gray-500 font-semibold">Omset ({{ $salesReport['period_label'] ?? 'Tahun Ini' }})</p>
                     <h3 class="text-2xl font-black text-gray-900 mt-1">
                         Rp {{ number_format($bData['revenue'], 0, ',', '.') }}
                     </h3>
@@ -279,10 +264,10 @@
             <div class="lg:col-span-8 bg-white p-6 rounded-3xl border border-gray-200/80 shadow-xs">
                 <div class="flex items-center justify-between mb-4">
                     <div>
-                        <h3 class="font-black text-base text-gray-900">Grafik Penjualan Bulanan Seluruh Cabang (2026)</h3>
-                        <p class="text-xs text-gray-500">Perbandingan tren pendapatan Serdam, Gajahmada, dan Kota Baru</p>
+                        <h3 class="font-black text-base text-gray-900">Grafik Penjualan Bulanan Seluruh Cabang</h3>
+                        <p class="text-xs text-gray-500">Perbandingan tren pendapatan antar cabang dari data transaksi</p>
                     </div>
-                    <span class="px-3 py-1 rounded-xl bg-gray-100 font-bold text-xs text-gray-700">Satuan: Juta Rupiah</span>
+                    <span class="px-3 py-1 rounded-xl bg-gray-100 font-bold text-xs text-gray-700">Satuan: Rupiah</span>
                 </div>
                 <div class="h-72">
                     <canvas id="ownerSalesChart"></canvas>
@@ -294,18 +279,19 @@
                 <h3 class="font-black text-base text-gray-900 mb-1">Produk Terlaris</h3>
                 <p class="text-xs text-gray-500 mb-4">Top 5 material paling diminati</p>
                 <div class="space-y-3.5">
-                    @foreach($salesReport['top_products'] as $tp)
+                    @forelse($salesReport['top_products'] ?? [] as $tp)
                         <div class="flex items-center justify-between text-xs border-b border-gray-100 pb-2.5">
                             <div>
                                 <p class="font-bold text-gray-900 truncate max-w-[160px]">{{ $tp['name'] }}</p>
-                                <p class="text-[10px] text-gray-400">{{ $tp['sold_qty'] }} unit terjual</p>
+                                <p class="text-[10px] text-gray-400">{{ $tp['sold_qty'] }} {{ $tp['unit'] ?? 'unit' }} terjual</p>
                             </div>
                             <div class="text-right">
                                 <p class="font-black text-gray-900">Rp {{ number_format($tp['revenue'], 0, ',', '.') }}</p>
-                                <span class="text-[10px] text-emerald-600 font-bold">{{ $tp['growth'] }}</span>
                             </div>
                         </div>
-                    @endforeach
+                    @empty
+                        <p class="text-xs text-gray-400 py-6 text-center">Belum ada penjualan tercatat pada periode ini.</p>
+                    @endforelse
                 </div>
             </div>
         </div>
@@ -316,6 +302,10 @@
     <!-- 3. CUSTOMER DASHBOARD -->
     <!-- ──────────────────────────────────────────────────────────── -->
     @if($role === 'customer')
+        @php
+            $paidOrdersCount = collect($customerOrders)->where('payment_status', 'paid')->count();
+            $unpaidOrdersCount = count($customerOrders) - $paidOrdersCount;
+        @endphp
         <div class="mb-8 bg-gradient-to-r from-zinc-900 via-zinc-800 to-black text-white p-6 md:p-8 rounded-3xl border border-white/10 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
                 <span class="px-3 py-1 rounded-full bg-[#F97316]/20 border border-[#F97316]/40 text-[#F97316] font-extrabold text-xs uppercase tracking-wider">
@@ -329,14 +319,14 @@
                 </p>
             </div>
             <div class="flex flex-wrap gap-3">
-                <a href="{{ route('products.index') }}" 
+                <a href="{{ route('products.index') }}"
                    class="px-5 py-3 rounded-2xl bg-[#F97316] hover:bg-[#EA580C] text-white font-extrabold text-xs shadow-lg shadow-orange-500/25 flex items-center gap-2 transition-all">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                     </svg>
                     <span>Mulai Belanja</span>
                 </a>
-                <a href="{{ route('orders.index') }}" 
+                <a href="{{ route('orders.index') }}"
                    class="px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/15 flex items-center gap-2 transition-all">
                     <span>Pesanan Saya ({{ count($customerOrders) }})</span>
                 </a>
@@ -365,7 +355,9 @@
                 </div>
                 <div>
                     <p class="text-xs text-gray-500 font-bold uppercase">Status Pembayaran</p>
-                    <h3 class="text-xl font-black text-emerald-600 mt-0.5">Semua Lunas</h3>
+                    <h3 class="text-xl font-black {{ $unpaidOrdersCount > 0 ? 'text-amber-600' : 'text-emerald-600' }} mt-0.5">
+                        {{ $unpaidOrdersCount > 0 ? $unpaidOrdersCount.' Belum Lunas' : 'Semua Lunas' }}
+                    </h3>
                 </div>
             </div>
 
@@ -377,7 +369,7 @@
                 </div>
                 <div>
                     <p class="text-xs text-gray-500 font-bold uppercase">Cabang Terdekat</p>
-                    <h3 class="text-xl font-black text-gray-900 mt-0.5">3 Cabang Aktif</h3>
+                    <h3 class="text-xl font-black text-gray-900 mt-0.5">{{ $branchCount }} Cabang Aktif</h3>
                 </div>
             </div>
         </div>
@@ -395,7 +387,7 @@
                             <div class="flex items-center gap-2">
                                 <span class="font-mono font-black text-xs text-gray-900">{{ $cOrd['order_number'] }}</span>
                                 <span class="text-gray-300">•</span>
-                                <span class="text-xs text-gray-500">{{ $cOrd['created_at'] }}</span>
+                                <span class="text-xs text-gray-500">{{ $cOrd['created_at_formatted'] }}</span>
                             </div>
                             <p class="text-xs font-semibold text-gray-700 mt-1">
                                 Cabang: {{ $cOrd['branch_name'] }} • {{ count($cOrd['items'] ?? []) }} Barang
@@ -405,7 +397,7 @@
                             <span class="font-black text-sm text-gray-900">
                                 Rp {{ number_format($cOrd['total'], 0, ',', '.') }}
                             </span>
-                            <a href="{{ route('orders.index', ['order' => $cOrd['order_number']]) }}" 
+                            <a href="{{ route('orders.index', ['order' => $cOrd['order_number']]) }}"
                                class="px-3 py-1.5 rounded-xl bg-white hover:bg-[#F97316] hover:text-white text-gray-800 font-bold text-xs border border-gray-200 transition-all shadow-xs">
                                 Lacak Pesanan
                             </a>
@@ -422,42 +414,27 @@
 
 </div>
 
-@if($role === 'owner')
+@if($role === 'owner' && !empty($salesReport['monthly_datasets']))
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const ctx = document.getElementById('ownerSalesChart');
         if (ctx) {
+            const rawDatasets = @js($salesReport['monthly_datasets'] ?? []);
+            const datasets = rawDatasets.map(ds => ({
+                label: ds.label,
+                data: ds.data,
+                borderColor: ds.borderColor,
+                backgroundColor: ds.backgroundColor,
+                fill: true,
+                tension: 0.3
+            }));
+
             new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: @js($salesReport['months']),
-                    datasets: [
-                        {
-                            label: 'Serdam',
-                            data: @js(array_map(fn($v) => round($v / 1000000, 1), $salesReport['sales_serdam'])),
-                            borderColor: '#F97316',
-                            backgroundColor: 'rgba(249, 115, 22, 0.1)',
-                            fill: true,
-                            tension: 0.3
-                        },
-                        {
-                            label: 'Gajahmada',
-                            data: @js(array_map(fn($v) => round($v / 1000000, 1), $salesReport['sales_gajahmada'])),
-                            borderColor: '#8B5CF6',
-                            backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                            fill: true,
-                            tension: 0.3
-                        },
-                        {
-                            label: 'Kota Baru',
-                            data: @js(array_map(fn($v) => round($v / 1000000, 1), $salesReport['sales_kotabaru'])),
-                            borderColor: '#06B6D4',
-                            backgroundColor: 'rgba(6, 182, 212, 0.1)',
-                            fill: true,
-                            tension: 0.3
-                        }
-                    ]
+                    labels: @js($salesReport['months'] ?? []),
+                    datasets: datasets
                 },
                 options: {
                     responsive: true,
@@ -467,16 +444,18 @@
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
-                                    return context.dataset.label + ': Rp ' + context.raw + ' Juta';
+                                    return context.dataset.label + ': Rp ' + (context.raw || 0).toLocaleString('id-ID');
                                 }
                             }
                         }
                     },
                     scales: {
                         y: {
-                            beginAtZero: false,
+                            beginAtZero: true,
                             ticks: {
-                                callback: function(value) { return 'Rp ' + value + ' Jt'; }
+                                callback: function(value) {
+                                    return 'Rp ' + value.toLocaleString('id-ID');
+                                }
                             }
                         }
                     }

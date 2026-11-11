@@ -4,7 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 class BranchMiddleware
@@ -17,13 +17,13 @@ class BranchMiddleware
      */
     public function handle(Request $request, Closure $next, string ...$branches): Response
     {
-        if (! Session::has('user')) {
+        if (! Auth::check()) {
             return redirect()->route('login')->with('auth_error', 'Please sign in to access this page.');
         }
 
-        $user = Session::get('user');
-        $userBranch = $user['branch'] ?? '';
-        $userRole = $user['role'] ?? '';
+        $user = Auth::user();
+        $userBranch = $user->branch ?? '';
+        $userRole = $user->role ?? '';
 
         // Owner with branch 'all' has access to every branch
         if ($userRole === 'owner' && $userBranch === 'all') {

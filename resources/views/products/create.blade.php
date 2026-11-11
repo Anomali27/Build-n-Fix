@@ -90,25 +90,33 @@
                 </div>
             </div>
 
-            <!-- Initial Stock Allocation 3 Branches -->
+            <!-- Initial Stock & Price Allocation per Branch -->
             <div class="p-5 bg-orange-50/50 rounded-2xl border border-orange-100">
-                <h3 class="text-xs font-extrabold uppercase text-[#F97316] mb-3">Alokasi Stok Awal per Cabang</h3>
+                <h3 class="text-xs font-extrabold uppercase text-[#F97316] mb-3">Alokasi Stok & Harga Awal per Cabang</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-[11px] font-bold text-gray-700 mb-1">Cabang Serdam</label>
-                        <input type="number" name="stock_serdam" value="{{ old('stock_serdam', 50) }}" min="0" 
-                               class="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F97316]">
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-bold text-gray-700 mb-1">Cabang Gajahmada</label>
-                        <input type="number" name="stock_gajahmada" value="{{ old('stock_gajahmada', 40) }}" min="0" 
-                               class="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F97316]">
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-bold text-gray-700 mb-1">Cabang Kota Baru</label>
-                        <input type="number" name="stock_kotabaru" value="{{ old('stock_kotabaru', 30) }}" min="0" 
-                               class="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F97316]">
-                    </div>
+                    @foreach($branches as $idx => $branch)
+                        @php
+                            $defaultStock = match ($branch->name) {
+                                'Serdam' => 50,
+                                'Gajahmada' => 40,
+                                default => 30,
+                            };
+                        @endphp
+                        <div class="p-3.5 bg-white rounded-2xl border border-orange-100 space-y-2.5">
+                            <p class="text-xs font-extrabold text-gray-900">Cabang {{ $branch->name }}</p>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Stok Awal</label>
+                                <input type="number" name="stocks[{{ $branch->id }}]" value="{{ old('stocks.'.$branch->id, $defaultStock) }}" min="0" 
+                                       class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F97316]">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Harga Cabang (Opsional)</label>
+                                <input type="number" name="prices[{{ $branch->id }}]" value="{{ old('prices.'.$branch->id) }}" min="0" 
+                                       placeholder="Otomatis dari harga dasar"
+                                       class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F97316]">
+                            </div>
+                        </div>
+                    @endforeach
                 </div>
             </div>
 

@@ -1,12 +1,16 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container mx-auto px-4 lg:px-8 py-8" x-data="{ 
+<div class="container mx-auto px-4 lg:px-8 py-8" x-data="{
     fulfillmentMethod: '{{ old('fulfillment_method', $checkoutData['fulfillment_method']) }}',
-    deliveryFee: {{ $checkoutData['delivery_fee'] }},
-    subtotal: {{ $checkoutData['subtotal'] }},
+    branchCount: {{ (int) ($checkoutData['branch_count'] ?? 1) }},
+    deliveryFeePerBranch: {{ (int) ($checkoutData['delivery_fee_per_branch'] ?? 15000) }},
+    subtotal: {{ (int) $checkoutData['subtotal'] }},
+    get calculatedDeliveryFee() {
+        return this.fulfillmentMethod === 'pickup' ? 0 : (this.deliveryFeePerBranch * this.branchCount);
+    },
     get total() {
-        return this.fulfillmentMethod === 'pickup' ? this.subtotal : (this.subtotal + 15000);
+        return this.subtotal + this.calculatedDeliveryFee;
     },
     formatRupiah(amount) {
         return 'Rp ' + (amount || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
@@ -36,6 +40,17 @@
         </div>
     @endif
 
+    @if ($errors->any())
+        <div class="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl text-xs font-semibold space-y-1">
+            @foreach ($errors->all() as $error)
+                <div class="flex items-center gap-2">
+                    <span>⚠️</span>
+                    <span>{{ $error }}</span>
+                </div>
+            @endforeach
+        </div>
+    @endif
+
     @if(!empty($checkoutData['validation_errors']))
         <div class="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl text-xs font-semibold space-y-1">
             @foreach($checkoutData['validation_errors'] as $err)
@@ -51,7 +66,7 @@
         @csrf
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            
+
             <!-- LEFT COLUMN (Customer, Branch, Fulfillment, Address, Order Items) -->
             <div class="lg:col-span-8 space-y-6">
 
@@ -70,49 +85,68 @@
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <x-form-input 
-                            name="customer_name" 
-                            label="Full Name" 
-                            placeholder="John Doe" 
-                            :value="old('customer_name', $checkoutData['customer']['name'])" 
+                        <x-form-input
+                            name="customer_name"
+                            label="Full Name"
+                            placeholder="John Doe"
+                            :value="old('customer_name', $checkoutData['customer']['name'])"
                             :required="true"
                         />
 
-                        <x-form-input 
-                            name="customer_email" 
-                            type="email" 
-                            label="Email Address" 
-                            placeholder="john@example.com" 
-                            :value="old('customer_email', $checkoutData['customer']['email'])" 
+                        <x-form-input
+                            name="customer_email"
+                            type="email"
+                            label="Email Address"
+                            placeholder="john@example.com"
+                            :value="old('customer_email', $checkoutData['customer']['email'])"
                             :required="true"
                         />
 
                         <div class="sm:col-span-2">
-                            <x-form-input 
-                                name="customer_phone" 
-                                label="Phone Number" 
-                                placeholder="081234567890" 
-                                :value="old('customer_phone', $checkoutData['customer']['phone'])" 
+                            <x-form-input
+                                name="customer_phone"
+                                label="Phone Number"
+                                placeholder="081234567890"
+                                :value="old('customer_phone', $checkoutData['customer']['phone'])"
                                 :required="true"
                             />
                         </div>
                     </div>
                 </div>
 
-                <!-- 2. BRANCH CONFIRMATION (ONE BRANCH PER TRANSACTION) -->
+                <!-- 2. BRANCH CONFIRMATION (SINGLE OR MULTI-BRANCH) -->
                 <div class="bg-white rounded-3xl p-6 shadow-xs border border-gray-200/80 space-y-4">
                     <div class="flex items-center gap-2.5 border-b border-gray-100 pb-3">
                         <span class="w-8 h-8 rounded-xl bg-orange-50 text-[#F97316] flex items-center justify-center font-extrabold text-sm border border-orange-100">2</span>
                         <h2 class="text-base font-extrabold text-[#111111]">Branch Confirmation</h2>
                     </div>
 
-                    <div class="bg-[#2563EB]/5 border border-[#2563EB]/20 rounded-2xl p-4 flex items-start gap-3 text-xs text-[#2563EB]">
-                        <span class="text-base leading-none">ℹ️</span>
-                        <div>
-                            <span class="font-extrabold block">Order Branch: Cabang {{ $checkoutData['branch']['name'] }}</span>
-                            <span class="mt-0.5 block text-gray-600 font-medium">All items in this order are fulfilled from Build n Fix {{ $checkoutData['branch']['name'] }}.</span>
+                    @if(($checkoutData['branch_count'] ?? 1) === 1)
+                        <div class="bg-[#2563EB]/5 border border-[#2563EB]/20 rounded-2xl p-4 flex items-start gap-3 text-xs text-[#2563EB]">
+                            <span class="text-base leading-none">ℹ️</span>
+                            <div>
+                                <span class="font-extrabold block">Order Branch: Cabang {{ $checkoutData['branch']['name'] }}</span>
+                                <span class="mt-0.5 block text-gray-600 font-medium">All items in this order are fulfilled from Build n Fix {{ $checkoutData['branch']['name'] }}.</span>
+                            </div>
                         </div>
-                    </div>
+                    @else
+                        <div class="bg-[#2563EB]/5 border border-[#2563EB]/20 rounded-2xl p-4 space-y-2 text-xs text-[#2563EB]">
+                            <div class="flex items-start gap-3">
+                                <span class="text-base leading-none">ℹ️</span>
+                                <div>
+                                    <span class="font-extrabold block">Checkout Multi-Cabang ({{ $checkoutData['branch_count'] }} Cabang Terpilih)</span>
+                                    <span class="mt-0.5 block text-gray-600 font-medium">Pesanan akan dibuat otomatis per cabang agar proses pengambilan/pengiriman dari masing-masing cabang tetap terpisah dan akurat.</span>
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap gap-2 pl-7">
+                                @foreach($checkoutData['branches'] as $branchGroup)
+                                    <span class="px-2.5 py-1 rounded-lg bg-white border border-blue-200 text-[11px] font-bold text-blue-800">
+                                        Cabang {{ $branchGroup['name'] }} ({{ count($branchGroup['items']) }} item)
+                                    </span>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
                 </div>
 
                 <!-- 3. FULFILLMENT METHOD -->
@@ -152,7 +186,9 @@
                                         <span class="text-xs text-gray-500 font-medium">Diantar ke alamat Anda</span>
                                     </div>
                                 </div>
-                                <span class="text-xs font-black text-[#F97316] bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">Rp15.000</span>
+                                <span class="text-xs font-black text-[#F97316] bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">
+                                    Rp{{ number_format($checkoutData['delivery_fee_per_branch'], 0, ',', '.') }}{{ ($checkoutData['branch_count'] ?? 1) > 1 ? '/cabang' : '' }}
+                                </span>
                             </div>
                             <p class="text-[11px] text-gray-500 italic font-medium pl-7">
                                 Fast delivery directly to your building site or house.
@@ -161,10 +197,14 @@
                     </div>
 
                     <!-- Pickup Location details when Pickup is selected -->
-                    <div x-show="fulfillmentMethod === 'pickup'" x-transition class="mt-4 p-4 rounded-2xl bg-gray-50 border border-gray-200 text-xs space-y-1">
+                    <div x-show="fulfillmentMethod === 'pickup'" x-transition class="mt-4 p-4 rounded-2xl bg-gray-50 border border-gray-200 text-xs space-y-2">
                         <div class="font-extrabold text-[#111111]">Pickup Location:</div>
-                        <div class="font-bold text-[#F97316]">Build n Fix {{ $checkoutData['branch']['name'] }}</div>
-                        <div class="text-gray-600 font-medium">Jl. {{ $checkoutData['branch']['name'] }} No. 88, {{ $checkoutData['branch']['city'] }}</div>
+                        @foreach($checkoutData['branches'] as $branchGroup)
+                            <div>
+                                <div class="font-bold text-[#F97316]">Build n Fix {{ $branchGroup['name'] }}</div>
+                                <div class="text-gray-600 font-medium">{{ $branchGroup['address'] ?: ($branchGroup['short_address'] ?: 'Kota '.$branchGroup['city']) }}</div>
+                            </div>
+                        @endforeach
                     </div>
                 </div>
 
@@ -176,45 +216,45 @@
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <x-form-input 
-                            name="recipient_name" 
-                            label="Recipient Name" 
-                            placeholder="John Doe" 
-                            :value="old('recipient_name', $checkoutData['delivery_address']['recipient_name'] ?? $checkoutData['customer']['name'])" 
+                        <x-form-input
+                            name="recipient_name"
+                            label="Recipient Name"
+                            placeholder="John Doe"
+                            :value="old('recipient_name', $checkoutData['delivery_address']['recipient_name'] ?? $checkoutData['customer']['name'])"
                             ::required="fulfillmentMethod === 'delivery'"
                         />
 
-                        <x-form-input 
-                            name="phone" 
-                            label="Phone Number" 
-                            placeholder="081234567890" 
-                            :value="old('phone', $checkoutData['delivery_address']['phone'] ?? $checkoutData['customer']['phone'])" 
+                        <x-form-input
+                            name="phone"
+                            label="Phone Number"
+                            placeholder="081234567890"
+                            :value="old('phone', $checkoutData['delivery_address']['phone'] ?? $checkoutData['customer']['phone'])"
                             ::required="fulfillmentMethod === 'delivery'"
                         />
 
                         <div class="sm:col-span-2">
-                            <x-form-input 
-                                name="address" 
-                                label="Street Address" 
-                                placeholder="Jl. Gajah Mada No. 123" 
-                                :value="old('address', $checkoutData['delivery_address']['address'] ?? '')" 
+                            <x-form-input
+                                name="address"
+                                label="Street Address"
+                                placeholder="Jl. Gajah Mada No. 123"
+                                :value="old('address', $checkoutData['delivery_address']['address'] ?? '')"
                                 ::required="fulfillmentMethod === 'delivery'"
                             />
                         </div>
 
-                        <x-form-input 
-                            name="city" 
-                            label="City" 
-                            placeholder="Pontianak" 
-                            :value="old('city', $checkoutData['delivery_address']['city'] ?? 'Pontianak')" 
+                        <x-form-input
+                            name="city"
+                            label="City"
+                            placeholder="Pontianak"
+                            :value="old('city', $checkoutData['delivery_address']['city'] ?? 'Pontianak')"
                             ::required="fulfillmentMethod === 'delivery'"
                         />
 
-                        <x-form-input 
-                            name="postal_code" 
-                            label="Postal Code" 
-                            placeholder="78121" 
-                            :value="old('postal_code', $checkoutData['delivery_address']['postal_code'] ?? '')" 
+                        <x-form-input
+                            name="postal_code"
+                            label="Postal Code"
+                            placeholder="78121"
+                            :value="old('postal_code', $checkoutData['delivery_address']['postal_code'] ?? '')"
                         />
 
                         <div class="sm:col-span-2">
@@ -237,19 +277,24 @@
                     <div class="divide-y divide-gray-100">
                         @foreach($checkoutData['cart']['items'] as $item)
                             <div class="py-3.5 flex items-center gap-4">
-                                <img src="{{ \Illuminate\Support\Str::startsWith($item['product']['image'] ?? '', ['http://', 'https://']) ? $item['product']['image'] : asset($item['product']['image'] ?? 'images/placeholder-product.jpg') }}" 
-                                     alt="{{ $item['product']['name'] }}" 
+                                <img src="{{ $item['product']['image'] }}"
+                                     alt="{{ $item['product']['name'] }}"
                                      class="w-14 h-14 object-cover rounded-xl border border-gray-200 shrink-0">
-                                
+
                                 <div class="flex-grow min-w-0">
-                                    <h4 class="text-xs font-black text-[#111111] truncate">{{ $item['product']['name'] }}</h4>
+                                    <div class="flex items-center gap-2">
+                                        <h4 class="text-xs font-black text-[#111111] truncate">{{ $item['product']['name'] }}</h4>
+                                        <span class="px-2 py-0.5 rounded-md bg-orange-50 text-[#F97316] text-[10px] font-bold shrink-0">
+                                            {{ $item['branch_name'] }}
+                                        </span>
+                                    </div>
                                     <div class="text-[11px] text-gray-500 mt-0.5 flex items-center gap-2">
                                         <span>SKU: {{ $item['product']['sku'] ?? 'N/A' }}</span>
                                         <span>•</span>
-                                        <span>Qty: <strong class="text-[#111111]">{{ $item['quantity'] }}</strong></span>
+                                        <span>Qty: <strong class="text-[#111111]">{{ $item['quantity'] }} {{ $item['product']['unit'] }}</strong></span>
                                     </div>
                                     <div class="text-[11px] font-semibold text-gray-600 mt-0.5">
-                                        Rp {{ number_format($item['unit_price'], 0, ',', '.') }} / Sak
+                                        Rp {{ number_format($item['unit_price'], 0, ',', '.') }} / {{ $item['product']['unit'] }}
                                     </div>
                                 </div>
 
@@ -267,13 +312,22 @@
 
             <!-- RIGHT COLUMN (ORDER SUMMARY & PAYMENT SELECTION) -->
             <div class="lg:col-span-4 space-y-6 lg:sticky lg:top-24">
-                
+
                 <div class="bg-white rounded-3xl p-6 shadow-md border border-gray-200 space-y-6">
-                    
+
                     <h3 class="text-lg font-black text-[#111111] border-b border-gray-100 pb-3">Order Summary</h3>
 
                     <!-- Calculation Details -->
                     <div class="space-y-3 text-xs">
+                        @if(($checkoutData['branch_count'] ?? 1) > 1)
+                            @foreach($checkoutData['branches'] as $branchGroup)
+                                <div class="flex justify-between items-center text-gray-500 font-medium">
+                                    <span>Subtotal Cabang {{ $branchGroup['name'] }}</span>
+                                    <span class="font-bold text-gray-800">Rp {{ number_format($branchGroup['subtotal'], 0, ',', '.') }}</span>
+                                </div>
+                            @endforeach
+                        @endif
+
                         <div class="flex justify-between items-center text-gray-600 font-medium">
                             <span>Subtotal</span>
                             <span class="font-bold text-[#111111]" x-text="formatRupiah(subtotal)"></span>
@@ -285,7 +339,7 @@
                                 <span class="font-bold text-emerald-600">Rp0 (Pickup)</span>
                             </template>
                             <template x-if="fulfillmentMethod === 'delivery'">
-                                <span class="font-bold text-[#F97316]">Rp15.000</span>
+                                <span class="font-bold text-[#F97316]" x-text="formatRupiah(calculatedDeliveryFee)"></span>
                             </template>
                         </div>
 
@@ -298,7 +352,7 @@
                     <!-- PAYMENT METHOD SECTION -->
                     <div class="pt-4 border-t border-gray-100 space-y-3">
                         <h4 class="text-xs font-extrabold text-[#111111] uppercase tracking-wider">Payment Method</h4>
-                        
+
                         <div class="p-3.5 rounded-2xl border-2 border-[#F97316] bg-orange-50/20 flex items-center justify-between">
                             <div class="flex items-center gap-3">
                                 <div class="w-8 h-8 rounded-xl bg-[#F97316] text-white flex items-center justify-center font-black text-xs shadow-md shadow-orange-500/20">
@@ -314,7 +368,7 @@
                     </div>
 
                     <!-- SUBMIT BUTTON -->
-                    <button type="submit" 
+                    <button type="submit"
                             class="w-full py-4 bg-[#F97316] hover:bg-orange-600 text-white rounded-2xl text-xs font-extrabold shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.99]">
                         <span>Continue to Payment</span>
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

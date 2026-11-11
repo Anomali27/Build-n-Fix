@@ -2,8 +2,7 @@
 
 @section('content')
 <div class="container mx-auto px-4 lg:px-8 py-8" x-data="{
-    paymentMethod: 'virtual_account',
-    simulationOutcome: 'success',
+    paymentMethod: 'Virtual Account (BCA / Mandiri / BRI Simulation)',
     isProcessing: false,
     formatRupiah(amount) {
         return 'Rp ' + (amount || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
@@ -16,7 +15,7 @@
         <span class="text-gray-400">&gt;</span>
         <a href="{{ route('cart.index') }}" class="hover:text-[#F97316] transition-colors">Cart</a>
         <span class="text-gray-400">&gt;</span>
-        <a href="{{ route('checkout.index') }}" class="hover:text-[#F97316] transition-colors">Checkout</a>
+        <a href="{{ route('checkout.index', ['keep' => 1]) }}" class="hover:text-[#F97316] transition-colors">Checkout</a>
         <span class="text-gray-400">&gt;</span>
         <span class="text-[#F97316] font-bold">Payment</span>
     </nav>
@@ -41,12 +40,12 @@
                     </p>
                 </div>
             </div>
-            
+
             <div class="flex items-center gap-3 pt-2 border-t border-rose-100">
                 <button type="button" onclick="this.closest('.mb-8').remove()" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-extrabold transition-colors">
                     Try Again
                 </button>
-                <a href="{{ route('checkout.index') }}" class="px-5 py-2.5 bg-white border border-rose-200 text-rose-800 hover:bg-rose-50 rounded-xl text-xs font-bold transition-colors">
+                <a href="{{ route('checkout.index', ['keep' => 1]) }}" class="px-5 py-2.5 bg-white border border-rose-200 text-rose-800 hover:bg-rose-50 rounded-xl text-xs font-bold transition-colors">
                     Back to Checkout
                 </a>
             </div>
@@ -57,7 +56,7 @@
         @csrf
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            
+
             <!-- LEFT COLUMN (Payment Method Selection) -->
             <div class="lg:col-span-8 space-y-6">
 
@@ -71,7 +70,7 @@
                     <div class="space-y-3">
                         <!-- Option 1: Virtual Account -->
                         <label class="cursor-pointer relative p-4 rounded-2xl border-2 transition-all flex items-center justify-between"
-                               :class="paymentMethod === 'virtual_account' ? 'border-[#F97316] bg-orange-50/20 shadow-xs' : 'border-gray-200 hover:border-gray-300 bg-white'">
+                               :class="paymentMethod === 'Virtual Account (BCA / Mandiri / BRI Simulation)' ? 'border-[#F97316] bg-orange-50/20 shadow-xs' : 'border-gray-200 hover:border-gray-300 bg-white'">
                             <div class="flex items-center gap-3.5">
                                 <input type="radio" name="payment_method" value="Virtual Account (BCA / Mandiri / BRI Simulation)" x-model="paymentMethod" class="w-4 h-4 text-[#F97316] focus:ring-[#F97316]">
                                 <div>
@@ -84,7 +83,7 @@
 
                         <!-- Option 2: E-Wallet -->
                         <label class="cursor-pointer relative p-4 rounded-2xl border-2 transition-all flex items-center justify-between"
-                               :class="paymentMethod === 'ewallet' ? 'border-[#F97316] bg-orange-50/20 shadow-xs' : 'border-gray-200 hover:border-gray-300 bg-white'">
+                               :class="paymentMethod === 'E-Wallet (GoPay / OVO / Dana Simulation)' ? 'border-[#F97316] bg-orange-50/20 shadow-xs' : 'border-gray-200 hover:border-gray-300 bg-white'">
                             <div class="flex items-center gap-3.5">
                                 <input type="radio" name="payment_method" value="E-Wallet (GoPay / OVO / Dana Simulation)" x-model="paymentMethod" class="w-4 h-4 text-[#F97316] focus:ring-[#F97316]">
                                 <div>
@@ -97,7 +96,7 @@
 
                         <!-- Option 3: Credit / Debit Card -->
                         <label class="cursor-pointer relative p-4 rounded-2xl border-2 transition-all flex items-center justify-between"
-                               :class="paymentMethod === 'card' ? 'border-[#F97316] bg-orange-50/20 shadow-xs' : 'border-gray-200 hover:border-gray-300 bg-white'">
+                               :class="paymentMethod === 'Credit / Debit Simulation' ? 'border-[#F97316] bg-orange-50/20 shadow-xs' : 'border-gray-200 hover:border-gray-300 bg-white'">
                             <div class="flex items-center gap-3.5">
                                 <input type="radio" name="payment_method" value="Credit / Debit Simulation" x-model="paymentMethod" class="w-4 h-4 text-[#F97316] focus:ring-[#F97316]">
                                 <div>
@@ -110,16 +109,16 @@
                     </div>
                 </div>
 
-                <!-- 4. ACTION BUTTONS -->
+                <!-- ACTION BUTTONS -->
                 <div class="space-y-3">
-                    <button type="submit" 
+                    <button type="submit"
                             :disabled="isProcessing"
                             class="w-full py-4 bg-[#F97316] hover:bg-orange-600 text-white rounded-2xl text-xs font-extrabold shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-75 cursor-pointer">
-                        
+
                         <!-- Normal State -->
                         <template x-if="!isProcessing">
                             <span class="flex items-center gap-2">
-                                <span>Pay {{ 'Rp ' . number_format($checkoutData['total'], 0, ',', '.') }}</span>
+                                <span>Pay Rp {{ number_format($checkoutData['total'], 0, ',', '.') }}</span>
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                                 </svg>
@@ -138,7 +137,7 @@
                         </template>
                     </button>
 
-                    <a href="{{ route('checkout.index') }}" 
+                    <a href="{{ route('checkout.index', ['keep' => 1]) }}"
                        class="block w-full py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl text-xs font-bold text-center transition-colors">
                         Back to Checkout
                     </a>
@@ -153,9 +152,11 @@
 
                     <!-- Branch & Fulfillment -->
                     <div class="bg-gray-50 rounded-2xl p-4 border border-gray-200/80 space-y-2 text-xs">
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-500 font-medium">Order Branch:</span>
-                            <span class="font-black text-[#111111]">Cabang {{ $checkoutData['branch']['name'] }}</span>
+                        <div class="flex justify-between items-center gap-2">
+                            <span class="text-gray-500 font-medium shrink-0">Cabang:</span>
+                            <span class="font-black text-[#111111] text-right">
+                                {{ implode(', ', array_map(fn (array $b): string => 'Cabang '.$b['name'], $checkoutData['branches'] ?? [])) }}
+                            </span>
                         </div>
                         <div class="flex justify-between items-center">
                             <span class="text-gray-500 font-medium">Fulfillment:</span>
@@ -170,14 +171,14 @@
                         <h4 class="text-xs font-extrabold text-gray-400 uppercase tracking-wider">Ordered Items</h4>
                         <div class="divide-y divide-gray-100 max-h-48 overflow-y-auto pr-1">
                             @foreach($checkoutData['cart']['items'] as $item)
-                                <div class="py-2.5 flex items-center justify-between text-xs">
+                                <div class="py-2.5 flex items-center justify-between text-xs gap-2">
                                     <div class="flex items-center gap-2.5 min-w-0">
-                                        <img src="{{ \Illuminate\Support\Str::startsWith($item['product']['image'] ?? '', ['http://', 'https://']) ? $item['product']['image'] : asset($item['product']['image'] ?? 'images/placeholder-product.jpg') }}" 
-                                             alt="{{ $item['product']['name'] }}" 
+                                        <img src="{{ $item['product']['image'] }}"
+                                             alt="{{ $item['product']['name'] }}"
                                              class="w-8 h-8 rounded-lg object-cover border border-gray-200 shrink-0">
                                         <div class="min-w-0">
                                             <span class="font-extrabold text-[#111111] block truncate text-[11px]">{{ $item['product']['name'] }}</span>
-                                            <span class="text-[10px] text-gray-400">Qty: x{{ $item['quantity'] }}</span>
+                                            <span class="text-[10px] text-gray-400">{{ $item['branch_name'] }} • x{{ $item['quantity'] }}</span>
                                         </div>
                                     </div>
                                     <span class="font-bold text-gray-800 text-[11px] shrink-0">

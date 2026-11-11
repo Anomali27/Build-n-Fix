@@ -12,10 +12,12 @@
              this.verifyModal = true;
          }
      }">
-    
+
     <!-- 1. BREADCRUMB -->
     <nav class="flex items-center gap-2 text-xs font-semibold text-gray-500 mb-6">
-        <a href="{{ route('dashboard') }}" class="hover:text-[#F97316] transition-colors">Dashboard</a>
+        <a href="{{ $role === 'customer' ? route('home') : route('dashboard') }}" class="hover:text-[#F97316] transition-colors">
+            {{ $role === 'customer' ? 'Home' : 'Dashboard' }}
+        </a>
         <span class="text-gray-400">&gt;</span>
         <span class="text-[#F97316] font-bold">
             {{ $role === 'customer' ? 'Riwayat Pembayaran Saya' : 'Daftar Transaksi Pembayaran' }}
@@ -69,27 +71,30 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                 </span>
-                <input type="text" name="q" value="{{ $search }}" 
-                       placeholder="Cari kode pesanan / pembayaran / nama..." 
+                <input type="text" name="q" value="{{ $search }}"
+                       placeholder="Cari kode pesanan / pembayaran / nama..."
                        class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F97316]">
             </div>
 
             @if($role !== 'customer')
-                <select name="branch" onchange="this.form.submit()" 
+                <select name="branch" onchange="this.form.submit()"
                         class="w-full sm:w-44 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F97316]">
                     <option value="all" {{ $branchFilter === 'all' ? 'selected' : '' }}>Semua Cabang</option>
-                    <option value="Serdam" {{ $branchFilter === 'Serdam' ? 'selected' : '' }}>Cabang Serdam</option>
-                    <option value="Gajahmada" {{ $branchFilter === 'Gajahmada' ? 'selected' : '' }}>Cabang Gajahmada</option>
-                    <option value="Kota Baru" {{ $branchFilter === 'Kota Baru' ? 'selected' : '' }}>Cabang Kota Baru</option>
+                    @foreach($branches as $b)
+                        <option value="{{ $b->name }}" {{ (string) $branchFilter === $b->name || (string) $branchFilter === (string) $b->id ? 'selected' : '' }}>
+                            Cabang {{ $b->name }}
+                        </option>
+                    @endforeach
                 </select>
             @endif
 
-            <select name="status" onchange="this.form.submit()" 
+            <select name="status" onchange="this.form.submit()"
                     class="w-full sm:w-44 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F97316]">
                 <option value="all" {{ $statusFilter === 'all' ? 'selected' : '' }}>Semua Status</option>
                 <option value="paid" {{ $statusFilter === 'paid' ? 'selected' : '' }}>Lunas (Verified)</option>
                 <option value="pending" {{ $statusFilter === 'pending' ? 'selected' : '' }}>Menunggu Verifikasi</option>
                 <option value="failed" {{ $statusFilter === 'failed' ? 'selected' : '' }}>Gagal</option>
+                <option value="refunded" {{ $statusFilter === 'refunded' ? 'selected' : '' }}>Dikembalikan</option>
             </select>
 
             <button type="submit" class="px-4 py-2 bg-gray-900 text-white font-bold text-xs rounded-xl shadow-xs">
@@ -98,11 +103,11 @@
         </form>
 
         <div class="text-xs text-gray-500 font-semibold">
-            Ditemukan <strong class="text-gray-900">{{ count($payments) }}</strong> transaksi
+            Ditemukan <strong class="text-gray-900">{{ $payments->count() }}</strong> transaksi
         </div>
     </div>
 
-    <!-- 4. PAYMENTS TABLE with exact requested columns -->
+    <!-- 4. PAYMENTS TABLE -->
     <div class="bg-white rounded-3xl border border-gray-200/80 shadow-xs overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left text-xs">
@@ -121,69 +126,74 @@
                 <tbody class="divide-y divide-gray-100">
                     @forelse($payments as $p)
                         @php
-                            $st = $p['status'] ?? 'paid';
+                            $st = $p->status ?? 'paid';
                             $stBadge = match($st) {
                                 'paid' => 'bg-emerald-100 text-emerald-800 border-emerald-200',
                                 'pending' => 'bg-amber-100 text-amber-800 border-amber-200',
                                 'failed' => 'bg-rose-100 text-rose-800 border-rose-200',
                                 default => 'bg-gray-100 text-gray-700'
                             };
+                            $orderNumber = $p->order?->order_number ?? '-';
+                            $customerName = $p->order?->customer_name ?? $p->user?->name ?? 'Customer';
+                            $customerEmail = $p->order?->customer_email ?? $p->user?->email ?? '-';
+                            $branchName = $p->branch?->name ?? '-';
+                            $paidDate = $p->paid_at?->format('d M Y, H:i') ?? $p->created_at?->format('d M Y, H:i') ?? '-';
                         @endphp
                         <tr class="hover:bg-gray-50/80 transition-colors">
                             <!-- 1. Kode Pesanan -->
                             <td class="py-4 px-5">
-                                <span class="font-mono font-bold text-gray-900 block">{{ $p['order_number'] }}</span>
-                                <span class="text-[10px] font-mono text-[#F97316]">{{ $p['payment_code'] }}</span>
+                                <span class="font-mono font-bold text-gray-900 block">{{ $orderNumber }}</span>
+                                <span class="text-[10px] font-mono text-[#F97316]">{{ $p->payment_code }}</span>
                             </td>
 
                             <!-- 2. Customer -->
                             <td class="py-4 px-4">
-                                <span class="font-extrabold text-gray-900 block">{{ $p['customer_name'] }}</span>
-                                <span class="text-[10px] text-gray-400">{{ $p['customer_email'] }}</span>
+                                <span class="font-extrabold text-gray-900 block">{{ $customerName }}</span>
+                                <span class="text-[10px] text-gray-400">{{ $customerEmail }}</span>
                             </td>
 
                             <!-- 3. Cabang -->
                             <td class="py-4 px-4">
                                 <span class="px-2.5 py-1 rounded-lg bg-gray-100 font-bold text-[11px] text-gray-700">
-                                    {{ $p['branch_name'] }}
+                                    {{ $branchName }}
                                 </span>
                             </td>
 
                             <!-- 4. Metode Pembayaran -->
                             <td class="py-4 px-4">
                                 <span class="font-bold text-gray-800 flex items-center gap-1.5">
-                                    💳 {{ $p['payment_method'] }}
+                                    💳 {{ $p->payment_method }}
                                 </span>
                             </td>
 
                             <!-- 5. Jumlah -->
                             <td class="py-4 px-4 font-black text-sm text-gray-900">
-                                Rp {{ number_format($p['amount'], 0, ',', '.') }}
+                                Rp {{ number_format($p->amount, 0, ',', '.') }}
                             </td>
 
                             <!-- 6. Status Pembayaran -->
                             <td class="py-4 px-4">
                                 <span class="px-2.5 py-1 rounded-full text-[10px] font-black border {{ $stBadge }}">
-                                    {{ $p['status_label'] ?? ucfirst($st) }}
+                                    {{ $p->status_label }}
                                 </span>
                             </td>
 
                             <!-- 7. Tanggal -->
                             <td class="py-4 px-4 text-gray-500 text-[11px] font-medium whitespace-nowrap">
-                                {{ date('d M Y, H:i', strtotime($p['date'])) }}
+                                {{ $paidDate }}
                             </td>
 
                             <!-- 8. Aksi -->
                             <td class="py-4 px-5 text-right">
                                 <div class="flex items-center justify-end gap-1.5">
-                                    <a href="{{ route('orders.index', ['order' => $p['order_number']]) }}" 
+                                    <a href="{{ route('orders.index', ['order' => $orderNumber]) }}"
                                        class="px-2.5 py-1.5 rounded-lg bg-gray-100 hover:bg-[#F97316] hover:text-white font-bold text-[11px] transition-all">
                                         Lihat Pesanan
                                     </a>
 
                                     @if($role === 'admin' && $st !== 'paid')
-                                        <button type="button" 
-                                                @click="openVerifyModal({{ $p['id'] }}, '{{ $p['payment_code'] }}')" 
+                                        <button type="button"
+                                                @click="openVerifyModal({{ $p->id }}, '{{ $p->payment_code }}')"
                                                 class="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-[11px] border border-emerald-200 transition-colors">
                                             Verifikasi
                                         </button>
@@ -205,9 +215,9 @@
 
     <!-- Admin Verify Payment Modal -->
     @if($role === 'admin')
-        <div x-show="verifyModal" x-cloak 
+        <div x-show="verifyModal" x-cloak
              class="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div @click.away="verifyModal = false" 
+            <div @click.away="verifyModal = false"
                  class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-gray-100">
                 <div class="flex items-center justify-between pb-3 border-b border-gray-100 mb-4">
                     <h3 class="font-black text-base text-gray-900">Verifikasi Pembayaran</h3>
@@ -232,6 +242,7 @@
                             <option value="paid">Lunas / Terverifikasi (Paid)</option>
                             <option value="pending">Menunggu Konfirmasi</option>
                             <option value="failed">Gagal / Ditolak</option>
+                            <option value="refunded">Dikembalikan (Refunded)</option>
                         </select>
                     </div>
 
@@ -240,7 +251,7 @@
                             Batal
                         </button>
                         <button type="submit" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-600/20">
-                            Konfirmasi Lunas
+                            Konfirmasi Status
                         </button>
                     </div>
                 </form>
