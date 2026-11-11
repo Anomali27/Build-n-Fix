@@ -22,7 +22,7 @@
         </div>
 
         @auth
-            @if(in_array(session('user.role'), ['admin', 'owner']))
+            @if(in_array(auth()->user()?->role, ['admin', 'owner']))
                 <a href="{{ route('categories.create') }}" class="inline-flex items-center gap-2 px-5 py-3 bg-[#F97316] hover:bg-orange-600 text-white rounded-2xl font-extrabold text-xs shadow-md shadow-orange-500/20 active:scale-95 transition-all whitespace-nowrap self-start md:self-auto">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -46,12 +46,6 @@
                 @if(request('category'))
                     <input type="hidden" name="category" value="{{ request('category') }}">
                 @endif
-                @if(request('location'))
-                    <input type="hidden" name="location" value="{{ request('location') }}">
-                @endif
-                @foreach((array) request('branches') as $br)
-                    <input type="hidden" name="branches[]" value="{{ $br }}">
-                @endforeach
                 @if(request('q'))
                     <input type="hidden" name="q" value="{{ request('q') }}">
                 @endif
@@ -60,6 +54,7 @@
                 <label for="sortSelect" class="text-xs font-bold text-gray-500 whitespace-nowrap">Sort by:</label>
                 <select name="sort" id="sortSelect" onchange="document.getElementById('sortForm').submit()" 
                         class="bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-xs font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#F97316]/50 cursor-pointer">
+                    <option value="terpopuler" {{ $sort === 'terpopuler' ? 'selected' : '' }}>Terpopuler</option>
                     <option value="a-z" {{ $sort === 'a-z' ? 'selected' : '' }}>A-Z</option>
                     <option value="z-a" {{ $sort === 'z-a' ? 'selected' : '' }}>Z-A</option>
                     <option value="jumlah-produk" {{ $sort === 'jumlah-produk' ? 'selected' : '' }}>Jumlah Produk</option>
@@ -115,40 +110,14 @@
                                     || strtolower($selectedCategory) === strtolower($catItem['slug'])
                                     || strtolower($selectedCategory) === strtolower($catItem['name']);
                             @endphp
-                            <a href="{{ route('categories.index', array_merge(request()->query(), ['category' => $catItem['id']])) }}" 
+                            <a href="{{ route('categories.index', array_merge(request()->query(), ['category' => $catItem['slug']])) }}" 
                                class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all {{ $isActive ? 'bg-orange-50 text-[#F97316] font-bold border-l-4 border-[#F97316]' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
                                 <span>{{ $catItem['name'] }}</span>
+                                <span class="text-[10px] text-gray-400">({{ $catItem['count'] }})</span>
                             </a>
                         @endforeach
                     </div>
                 </x-filter-section>
-
-                <!-- SECTION 2: BRANCH LOCATION FILTER -->
-                <div class="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-sm space-y-4 mt-6">
-                    <h3 class="font-extrabold text-base text-[#111111] pb-3 border-b border-gray-100">
-                        Tersedia di lokasi
-                    </h3>
-
-                    <div class="space-y-3">
-                        @foreach($sidebarBranches as $branch)
-                            @php
-                                $isBranchChecked = in_array($branch['name'], (array) $selectedBranches) || strtolower($location) === strtolower($branch['name']);
-                            @endphp
-                            <label class="flex items-center justify-between text-xs text-gray-700 font-medium cursor-pointer hover:text-gray-900 group">
-                                <div class="flex items-center gap-2.5">
-                                    <input type="checkbox" 
-                                           name="branches[]" 
-                                           value="{{ $branch['name'] }}" 
-                                           {{ $isBranchChecked ? 'checked' : '' }}
-                                           onchange="document.getElementById('filterForm').submit()"
-                                           class="w-4 h-4 text-[#F97316] rounded border-gray-300 focus:ring-[#F97316]">
-                                    <span class="{{ $isBranchChecked ? 'font-bold text-[#111111]' : '' }}">{{ $branch['name'] }}</span>
-                                </div>
-                                <span class="text-[10px] text-gray-400 font-medium">({{ $branch['count'] }})</span>
-                            </label>
-                        @endforeach
-                    </div>
-                </div>
 
                 <!-- RESET BUTTON -->
                 <div class="pt-2">
@@ -179,7 +148,7 @@
             @empty
                 <x-empty-state 
                     title="Kategori Tidak Ditemukan" 
-                    message="Coba ubah kata kunci atau filter lokasi cabang untuk melihat kategori bahan bangunan lainnya."
+                    message="Coba ubah kata kunci pencarian untuk melihat kategori bahan bangunan lainnya."
                     :resetUrl="route('categories.index')"
                 />
             @endforelse

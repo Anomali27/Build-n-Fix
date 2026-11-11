@@ -2,47 +2,94 @@
 
 namespace App\Http\Controllers;
 
-use App\Repositories\BranchStockRepository;
-use App\Repositories\OrderRepository;
-use App\Repositories\PaymentRepository;
-use App\Repositories\ProductRepository;
-use App\Repositories\ReportRepository;
-use App\Repositories\SupplierRepository;
+use App\Models\Branch;
+use App\Models\Order;
+use App\Models\Payment;
+use App\Models\Product;
+use App\Models\Supplier;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Session;
+use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): View
     {
-        $user = Session::get('user', [
+        $authUser = $request->user();
+        $user = $authUser ? [
+            'id' => $authUser->id,
+            'user_id' => $authUser->id,
+            'name' => $authUser->name,
+            'email' => $authUser->email,
+            'role' => $authUser->role ?? 'customer',
+            'branch' => $authUser->branch,
+        ] : [
             'name' => 'Customer',
             'role' => 'customer',
             'branch' => null,
-        ]);
+        ];
 
         $role = $user['role'] ?? 'customer';
         $branch = $user['branch'] ?? 'Serdam';
 
-        // Prepare data for each role
-        $totalProducts = count(ProductRepository::getAll());
-        $allOrders = OrderRepository::all();
-        $totalOrders = count($allOrders);
-        $totalSuppliers = count(SupplierRepository::getAll());
+        $totalProducts = Product::query()->active()->count();
+        $totalOrders = Order::query()->count();
+        $totalSuppliers = Supplier::query()->count();
+        $branchCount = Branch::query()->open()->count();
 
-        // Stock Matrix summary
-        $stockMatrix = BranchStockRepository::getCategoryProductStockMatrix();
-        $lowStockItems = array_filter($stockMatrix, function ($item) {
-            return $item['stock_serdam'] <= 10 || $item['stock_gajahmada'] <= 10 || $item['stock_kotabaru'] <= 10;
-        });
+        $recentOrders = Order::query()
+            ->with(['branch', 'items', 'latestPayment'])
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->limit(6)
+            ->get()
+            ->map(fn (Order $order): array => $order->toDisplayArray())
+            ->all();
 
-        // Sales report
-        $salesReport = ReportRepository::getSalesReport('all', 'this_month');
+        $lowStockProducts = Product::query()
+            ->with(['category', 'branchStocks'])
+            ->whereHas('branchStocks', fn ($q) => $q->where('stock', '<=', 10))
+            ->get()
+            ->map(function (Product $product): array {
+                $totalStock = (int) $product->branchStocks->sum('stock');
 
-        // Customer specific
-        $userId = (int) ($user['id'] ?? $user['user_id'] ?? 1);
-        $customerOrders = OrderRepository::getByUser($userId);
-        $customerPayments = PaymentRepository::getByUser($userId);
+                return [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'category_name' => $product->category?->name ?? 'Material Bangunan',
+                    'unit' => $product->unit ?? $product->size ?? 'Unit',
+                    'total_stock' => $totalStock,
+                    'min_branch_stock' => (int) ($product->branchStocks->min('stock') ?? 0),
+                ];
+            })
+            ->sortBy('min_branch_stock')
+            ->values();
+
+        $lowStockCount = $lowStockProducts->count();
+        $lowStockItems = $lowStockProducts->take(5)->all();
+
+        $salesReport = $role === 'owner'
+            ? Order::buildSalesReport('all', 'this_year')
+            : [];
+
+        $customerOrders = $authUser
+            ? Order::query()
+                ->with(['branch', 'items', 'latestPayment'])
+                ->forUser((int) $authUser->id)
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->get()
+                ->map(fn (Order $order): array => $order->toDisplayArray())
+                ->all()
+            : [];
+
+        $customerPayments = $authUser
+            ? Payment::query()
+                ->with(['order', 'branch'])
+                ->forUser((int) $authUser->id)
+                ->orderByDesc('paid_at')
+                ->orderByDesc('created_at')
+                ->get()
+            : collect();
 
         return view('dashboard.index', [
             'role' => $role,
@@ -51,8 +98,10 @@ class DashboardController extends Controller
             'totalProducts' => $totalProducts,
             'totalOrders' => $totalOrders,
             'totalSuppliers' => $totalSuppliers,
-            'recentOrders' => array_slice($allOrders, 0, 6),
-            'lowStockItems' => array_slice($lowStockItems, 0, 5),
+            'branchCount' => $branchCount,
+            'recentOrders' => $recentOrders,
+            'lowStockItems' => $lowStockItems,
+            'lowStockCount' => $lowStockCount,
             'salesReport' => $salesReport,
             'customerOrders' => $customerOrders,
             'customerPayments' => $customerPayments,

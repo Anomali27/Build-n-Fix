@@ -169,7 +169,10 @@
                 <!-- Product Stock Cards Grid -->
                 <div class="grid grid-cols-1 gap-4">
                     @foreach($productsList as $item)
-                        <div class="bg-white rounded-3xl border border-gray-200/80 p-5 shadow-xs hover:shadow-md transition-all">
+                        @php
+                            $hasAnyLowStock = collect($item['branches'])->contains(fn ($b) => $b['stock'] <= 10);
+                        @endphp
+                        <div class="bg-white rounded-3xl border {{ $hasAnyLowStock ? 'border-orange-200/80' : 'border-gray-200/80' }} p-5 shadow-xs hover:shadow-md transition-all">
                             <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
                                 
                                 <!-- Product Info Column -->
@@ -194,105 +197,43 @@
                                     </div>
                                 </div>
 
-                                <!-- 3 Branch Stock Columns (Serdam • Gajahmada • Kota Baru) -->
+                                <!-- Branch Stock Columns -->
                                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1 w-full">
-                                    
-                                    <!-- Cabang 1: Serdam -->
-                                    <div class="p-3.5 rounded-2xl bg-gray-50 border {{ $item['stock_serdam'] <= 10 ? 'border-rose-200 bg-rose-50/40' : 'border-gray-200/70' }} flex flex-col justify-between">
-                                        <div class="flex items-center justify-between text-xs mb-1">
-                                            <span class="font-bold text-gray-700">Serdam</span>
-                                            <span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold {{ $item['stock_serdam'] <= 0 ? 'bg-rose-100 text-rose-800' : ($item['stock_serdam'] <= 10 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800') }}">
-                                                {{ $item['stock_serdam'] }} {{ $item['unit'] }}
-                                            </span>
-                                        </div>
-
-                                        @if($role === 'admin')
-                                            <div class="flex items-center gap-1.5 mt-2 pt-2 border-t border-gray-200/60">
-                                                <button type="button" 
-                                                        @click="openAdjustModal(@js($item), 1, 'Serdam', {{ $item['stock_serdam'] }}, 'add')" 
-                                                        class="flex-1 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-extrabold text-[11px] border border-emerald-200 transition-colors">
-                                                    + Tambah
-                                                </button>
-                                                <button type="button" 
-                                                        @click="openAdjustModal(@js($item), 1, 'Serdam', {{ $item['stock_serdam'] }}, 'subtract')" 
-                                                        class="flex-1 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold text-[11px] border border-rose-200 transition-colors">
-                                                    - Kurang
-                                                </button>
-                                                <button type="button" 
-                                                        @click="openAdjustModal(@js($item), 1, 'Serdam', {{ $item['stock_serdam'] }}, 'set')" 
-                                                        class="px-2 py-1 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-[11px] transition-colors" title="Ubah Nilai">
-                                                    Ubah
-                                                </button>
+                                    @foreach($item['branches'] as $branchStock)
+                                        <div class="p-3.5 rounded-2xl bg-gray-50 border {{ $branchStock['stock'] <= 10 ? 'border-rose-200 bg-rose-50/40' : 'border-gray-200/70' }} flex flex-col justify-between">
+                                            <div class="flex items-center justify-between text-xs mb-1">
+                                                <span class="font-bold text-gray-700">{{ $branchStock['branch_name'] }}</span>
+                                                <span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold {{ $branchStock['stock'] <= 0 ? 'bg-rose-100 text-rose-800' : ($branchStock['stock'] <= 10 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800') }}">
+                                                    {{ $branchStock['stock'] }} {{ $item['unit'] }}
+                                                </span>
                                             </div>
-                                        @else
-                                            <p class="text-[10px] text-gray-500 mt-2 font-medium">Status: {{ $item['stock_serdam'] > 10 ? 'Aman' : ($item['stock_serdam'] > 0 ? 'Menipis' : 'Habis') }}</p>
-                                        @endif
-                                    </div>
+                                            <p class="text-[11px] font-bold text-[#F97316]">
+                                                Rp {{ number_format($branchStock['price'], 0, ',', '.') }}
+                                            </p>
 
-                                    <!-- Cabang 2: Gajahmada -->
-                                    <div class="p-3.5 rounded-2xl bg-gray-50 border {{ $item['stock_gajahmada'] <= 10 ? 'border-rose-200 bg-rose-50/40' : 'border-gray-200/70' }} flex flex-col justify-between">
-                                        <div class="flex items-center justify-between text-xs mb-1">
-                                            <span class="font-bold text-gray-700">Gajahmada</span>
-                                            <span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold {{ $item['stock_gajahmada'] <= 0 ? 'bg-rose-100 text-rose-800' : ($item['stock_gajahmada'] <= 10 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800') }}">
-                                                {{ $item['stock_gajahmada'] }} {{ $item['unit'] }}
-                                            </span>
+                                            @if($role === 'admin')
+                                                <div class="flex items-center gap-1.5 mt-2 pt-2 border-t border-gray-200/60">
+                                                    <button type="button" 
+                                                            @click="openAdjustModal(@js($item), {{ $branchStock['branch_id'] }}, @js($branchStock['branch_name']), {{ $branchStock['stock'] }}, 'add')" 
+                                                            class="flex-1 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-extrabold text-[11px] border border-emerald-200 transition-colors">
+                                                        + Tambah
+                                                    </button>
+                                                    <button type="button" 
+                                                            @click="openAdjustModal(@js($item), {{ $branchStock['branch_id'] }}, @js($branchStock['branch_name']), {{ $branchStock['stock'] }}, 'subtract')" 
+                                                            class="flex-1 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold text-[11px] border border-rose-200 transition-colors">
+                                                        - Kurang
+                                                    </button>
+                                                    <button type="button" 
+                                                            @click="openAdjustModal(@js($item), {{ $branchStock['branch_id'] }}, @js($branchStock['branch_name']), {{ $branchStock['stock'] }}, 'set')" 
+                                                            class="px-2 py-1 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-[11px] transition-colors" title="Ubah Nilai">
+                                                        Ubah
+                                                    </button>
+                                                </div>
+                                            @else
+                                                <p class="text-[10px] text-gray-500 mt-2 font-medium">Status: {{ $branchStock['stock'] > 10 ? 'Aman' : ($branchStock['stock'] > 0 ? 'Menipis' : 'Habis') }}</p>
+                                            @endif
                                         </div>
-
-                                        @if($role === 'admin')
-                                            <div class="flex items-center gap-1.5 mt-2 pt-2 border-t border-gray-200/60">
-                                                <button type="button" 
-                                                        @click="openAdjustModal(@js($item), 2, 'Gajahmada', {{ $item['stock_gajahmada'] }}, 'add')" 
-                                                        class="flex-1 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-extrabold text-[11px] border border-emerald-200 transition-colors">
-                                                    + Tambah
-                                                </button>
-                                                <button type="button" 
-                                                        @click="openAdjustModal(@js($item), 2, 'Gajahmada', {{ $item['stock_gajahmada'] }}, 'subtract')" 
-                                                        class="flex-1 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold text-[11px] border border-rose-200 transition-colors">
-                                                    - Kurang
-                                                </button>
-                                                <button type="button" 
-                                                        @click="openAdjustModal(@js($item), 2, 'Gajahmada', {{ $item['stock_gajahmada'] }}, 'set')" 
-                                                        class="px-2 py-1 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-[11px] transition-colors" title="Ubah Nilai">
-                                                    Ubah
-                                                </button>
-                                            </div>
-                                        @else
-                                            <p class="text-[10px] text-gray-500 mt-2 font-medium">Status: {{ $item['stock_gajahmada'] > 10 ? 'Aman' : ($item['stock_gajahmada'] > 0 ? 'Menipis' : 'Habis') }}</p>
-                                        @endif
-                                    </div>
-
-                                    <!-- Cabang 3: Kota Baru -->
-                                    <div class="p-3.5 rounded-2xl bg-gray-50 border {{ $item['stock_kotabaru'] <= 10 ? 'border-rose-200 bg-rose-50/40' : 'border-gray-200/70' }} flex flex-col justify-between">
-                                        <div class="flex items-center justify-between text-xs mb-1">
-                                            <span class="font-bold text-gray-700">Kota Baru</span>
-                                            <span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold {{ $item['stock_kotabaru'] <= 0 ? 'bg-rose-100 text-rose-800' : ($item['stock_kotabaru'] <= 10 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800') }}">
-                                                {{ $item['stock_kotabaru'] }} {{ $item['unit'] }}
-                                            </span>
-                                        </div>
-
-                                        @if($role === 'admin')
-                                            <div class="flex items-center gap-1.5 mt-2 pt-2 border-t border-gray-200/60">
-                                                <button type="button" 
-                                                        @click="openAdjustModal(@js($item), 3, 'Kota Baru', {{ $item['stock_kotabaru'] }}, 'add')" 
-                                                        class="flex-1 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-extrabold text-[11px] border border-emerald-200 transition-colors">
-                                                    + Tambah
-                                                </button>
-                                                <button type="button" 
-                                                        @click="openAdjustModal(@js($item), 3, 'Kota Baru', {{ $item['stock_kotabaru'] }}, 'subtract')" 
-                                                        class="flex-1 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold text-[11px] border border-rose-200 transition-colors">
-                                                    - Kurang
-                                                </button>
-                                                <button type="button" 
-                                                        @click="openAdjustModal(@js($item), 3, 'Kota Baru', {{ $item['stock_kotabaru'] }}, 'set')" 
-                                                        class="px-2 py-1 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-[11px] transition-colors" title="Ubah Nilai">
-                                                    Ubah
-                                                </button>
-                                            </div>
-                                        @else
-                                            <p class="text-[10px] text-gray-500 mt-2 font-medium">Status: {{ $item['stock_kotabaru'] > 10 ? 'Aman' : ($item['stock_kotabaru'] > 0 ? 'Menipis' : 'Habis') }}</p>
-                                        @endif
-                                    </div>
-
+                                    @endforeach
                                 </div>
 
                                 <!-- Total Stock Badge -->

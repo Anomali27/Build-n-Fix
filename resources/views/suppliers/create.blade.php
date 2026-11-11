@@ -27,6 +27,14 @@
         <form action="{{ route('suppliers.store') }}" method="POST" class="p-6 md:p-8 space-y-6">
             @csrf
 
+            @if($errors->any())
+                <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold space-y-1">
+                    @foreach($errors->all() as $error)
+                        <div>{{ $error }}</div>
+                    @endforeach
+                </div>
+            @endif
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div class="md:col-span-2">
                     <label class="block text-xs font-bold text-gray-700 uppercase mb-2">Nama Perusahaan / Pemasok <span class="text-rose-500">*</span></label>
@@ -67,14 +75,14 @@
                     <label class="block text-xs font-bold text-gray-700 uppercase mb-2">Alamat Lengkap</label>
                     <textarea name="address" rows="2" 
                               class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F97316]"
-                              placeholder="Jl. Raya No. ..., Kawasan Industri / Pergudangan"></textarea>
+                              placeholder="Jl. Raya No. ..., Kawasan Industri / Pergudangan">{{ old('address') }}</textarea>
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold text-gray-700 uppercase mb-2">Status</label>
                     <select name="status" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F97316]">
-                        <option value="active">Aktif</option>
-                        <option value="inactive">Non-Aktif</option>
+                        <option value="active" {{ old('status', 'active') === 'active' ? 'selected' : '' }}>Aktif</option>
+                        <option value="inactive" {{ old('status') === 'inactive' ? 'selected' : '' }}>Non-Aktif</option>
                     </select>
                 </div>
             </div>

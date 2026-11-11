@@ -99,6 +99,30 @@
                 </div>
             @endif
 
+            @php
+                $stocksByBranch = $product->branchStocks->keyBy('branch_id');
+            @endphp
+
+            <!-- Branch Pricing -->
+            <div class="p-5 bg-orange-50/50 rounded-2xl border border-orange-100">
+                <h3 class="text-xs font-extrabold uppercase text-[#F97316] mb-3">Harga Jual per Cabang (Rp)</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    @foreach($branches as $branch)
+                        @php
+                            $bStock = $stocksByBranch->get($branch->id);
+                        @endphp
+                        <div class="p-3.5 bg-white rounded-2xl border border-orange-100 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-extrabold text-gray-900">Cabang {{ $branch->name }}</span>
+                                <span class="text-[10px] font-bold text-gray-500">Stok: {{ $bStock?->stock ?? 0 }}</span>
+                            </div>
+                            <input type="number" name="prices[{{ $branch->id }}]" value="{{ old('prices.'.$branch->id, $bStock?->price ?? $product['price']) }}" min="0"
+                                   class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F97316]">
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+
             <!-- Image URL -->
             <div>
                 <label class="block text-xs font-bold text-gray-700 uppercase mb-2">URL Gambar Produk</label>

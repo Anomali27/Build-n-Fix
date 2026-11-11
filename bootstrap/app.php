@@ -1,9 +1,7 @@
 <?php
 
 use App\Http\Middleware\BranchMiddleware;
-use App\Http\Middleware\CustomerAuth;
 use App\Http\Middleware\RoleMiddleware;
-use App\Http\Middleware\SyncSessionAuth;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -16,11 +14,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->web(append: [
-            SyncSessionAuth::class,
-        ]);
+        $middleware->redirectGuestsTo(fn () => route('login'));
+        $middleware->redirectUsersTo(fn (Request $request) => in_array($request->user()?->role, ['admin', 'owner'], true)
+            ? '/dashboard'
+            : '/');
         $middleware->alias([
-            'auth' => CustomerAuth::class,
             'role' => RoleMiddleware::class,
             'branch' => BranchMiddleware::class,
         ]);

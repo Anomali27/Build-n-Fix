@@ -12,7 +12,7 @@
          statusUpdateModal: false,
          statusOrderNumber: '',
          statusCurrentStatus: 'paid',
-         
+
          openOrderModal(orderNumber) {
              let found = this.allOrders.find(o => o.order_number === orderNumber);
              if (!found) {
@@ -27,7 +27,7 @@
          },
          openStatusModal(orderNumber, currentStatus) {
              this.statusOrderNumber = orderNumber;
-             this.statusCurrentStatus = currentStatus;
+             this.statusCurrentStatus = currentStatus === 'completed' ? 'order_completed' : currentStatus;
              this.statusUpdateModal = true;
          },
          closeModal() {
@@ -53,6 +53,12 @@
         @if(session('success'))
             <div class="mb-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center justify-between">
                 <span>{{ session('success') }}</span>
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center justify-between">
+                <span>{{ session('error') }}</span>
             </div>
         @endif
 
@@ -84,26 +90,30 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                     </span>
-                    <input type="text" name="search" value="{{ $search }}" 
-                           placeholder="Cari no pesanan, customer..." 
+                    <input type="text" name="search" value="{{ $search }}"
+                           placeholder="Cari no pesanan, customer..."
                            class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F97316]">
                 </div>
 
-                <select name="branch" onchange="this.form.submit()" 
+                <select name="branch" onchange="this.form.submit()"
                         class="w-full sm:w-44 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F97316]">
                     <option value="all" {{ $branchFilter === 'all' ? 'selected' : '' }}>Semua Cabang</option>
-                    <option value="Serdam" {{ $branchFilter === 'Serdam' ? 'selected' : '' }}>Cabang Serdam</option>
-                    <option value="Gajahmada" {{ $branchFilter === 'Gajahmada' ? 'selected' : '' }}>Cabang Gajahmada</option>
-                    <option value="Kota Baru" {{ $branchFilter === 'Kota Baru' ? 'selected' : '' }}>Cabang Kota Baru</option>
+                    @foreach($branches as $b)
+                        <option value="{{ $b->name }}" {{ (string) $branchFilter === $b->name || (string) $branchFilter === (string) $b->id ? 'selected' : '' }}>
+                            Cabang {{ $b->name }}
+                        </option>
+                    @endforeach
                 </select>
 
-                <select name="status" onchange="this.form.submit()" 
+                <select name="status" onchange="this.form.submit()"
                         class="w-full sm:w-44 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F97316]">
                     <option value="all" {{ $statusFilter === 'all' ? 'selected' : '' }}>Semua Status</option>
                     <option value="paid" {{ $statusFilter === 'paid' ? 'selected' : '' }}>Paid / Menunggu</option>
+                    <option value="proses" {{ $statusFilter === 'proses' ? 'selected' : '' }}>Diproses</option>
                     <option value="ready_to_pick_up" {{ $statusFilter === 'ready_to_pick_up' ? 'selected' : '' }}>Siap Diambil</option>
                     <option value="on_delivery" {{ $statusFilter === 'on_delivery' ? 'selected' : '' }}>Dalam Pengiriman</option>
-                    <option value="completed" {{ $statusFilter === 'completed' ? 'selected' : '' }}>Selesai</option>
+                    <option value="order_completed" {{ in_array($statusFilter, ['order_completed', 'completed'], true) ? 'selected' : '' }}>Selesai</option>
+                    <option value="cancelled" {{ $statusFilter === 'cancelled' ? 'selected' : '' }}>Dibatalkan</option>
                 </select>
 
                 <button type="submit" class="px-4 py-2 bg-gray-900 text-white font-bold text-xs rounded-xl shadow-xs">
@@ -116,7 +126,7 @@
             </div>
         </div>
 
-        <!-- Management Orders Table with all requested columns -->
+        <!-- Management Orders Table -->
         <div class="bg-white rounded-3xl border border-gray-200/80 shadow-xs overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">
@@ -138,24 +148,17 @@
                             @php
                                 $itemsCount = 0;
                                 $productNames = [];
-                                foreach($ord['items'] ?? [] as $it) {
+                                foreach ($ord['items'] ?? [] as $it) {
                                     $itemsCount += ($it['quantity'] ?? 1);
                                     $productNames[] = $it['product_name'] ?? 'Produk';
                                 }
                                 $st = $ord['order_status'] ?? 'paid';
-                                $stBadge = match($st) {
-                                    'paid' => 'bg-emerald-100 text-emerald-800 border-emerald-200',
-                                    'ready_to_pick_up' => 'bg-blue-100 text-blue-800 border-blue-200',
-                                    'on_delivery' => 'bg-amber-100 text-amber-800 border-amber-200',
-                                    'completed' => 'bg-gray-200 text-gray-800 border-gray-300',
-                                    default => 'bg-gray-100 text-gray-700'
-                                };
                             @endphp
                             <tr class="hover:bg-gray-50/80 transition-colors">
                                 <!-- 1. Kode Pesanan -->
                                 <td class="py-4 px-5 font-mono font-bold text-gray-900">
                                     {{ $ord['order_number'] }}
-                                    <span class="block text-[10px] text-gray-400 font-sans font-normal">{{ date('d M Y H:i', strtotime($ord['created_at'])) }}</span>
+                                    <span class="block text-[10px] text-gray-400 font-sans font-normal">{{ $ord['created_at_formatted'] }}</span>
                                 </td>
 
                                 <!-- 2. Nama Customer -->
@@ -198,22 +201,20 @@
 
                                 <!-- 8. Status -->
                                 <td class="py-4 px-4">
-                                    <span class="px-2.5 py-1 rounded-full text-[10px] font-black border {{ $stBadge }}">
-                                        {{ ucfirst(str_replace('_', ' ', $st)) }}
-                                    </span>
+                                    <x-status-badge :status="$st" />
                                 </td>
 
                                 <!-- 9. Aksi -->
                                 <td class="py-4 px-5 text-right">
                                     <div class="flex items-center justify-end gap-1.5">
-                                        <button type="button" 
-                                                @click="openOrderModal('{{ $ord['order_number'] }}')" 
+                                        <button type="button"
+                                                @click="openOrderModal('{{ $ord['order_number'] }}')"
                                                 class="px-2.5 py-1.5 rounded-lg bg-gray-100 hover:bg-[#F97316] hover:text-white font-bold text-[11px] transition-all">
                                             Detail
                                         </button>
                                         @if($role === 'admin')
-                                            <button type="button" 
-                                                    @click="openStatusModal('{{ $ord['order_number'] }}', '{{ $st }}')" 
+                                            <button type="button"
+                                                    @click="openStatusModal('{{ $ord['order_number'] }}', '{{ $st }}')"
                                                     class="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-[11px] border border-emerald-200 transition-colors">
                                                 Update
                                             </button>
@@ -235,9 +236,9 @@
 
         <!-- Admin Update Status Modal -->
         @if($role === 'admin')
-            <div x-show="statusUpdateModal" x-cloak 
+            <div x-show="statusUpdateModal" x-cloak
                  class="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-                <div @click.away="statusUpdateModal = false" 
+                <div @click.away="statusUpdateModal = false"
                      class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-gray-100">
                     <div class="flex items-center justify-between pb-3 border-b border-gray-100 mb-4">
                         <div>
@@ -257,12 +258,14 @@
 
                         <div>
                             <label class="block text-xs font-bold text-gray-700 uppercase mb-2">Pilih Status Baru</label>
-                            <select name="order_status" x-model="statusCurrentStatus" 
+                            <select name="order_status" x-model="statusCurrentStatus"
                                     class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F97316]">
                                 <option value="paid">Paid (Menunggu Diproses)</option>
-                                <option value="ready_to_pick_up">Siap Diambil di Toko (Pickup Ready)</option>
+                                <option value="proses">Proses (Sedang Disiapkan)</option>
+                                <option value="ready_to_pick_up">Siap Diambil di Toko (Ready to Pick Up)</option>
                                 <option value="on_delivery">Dalam Pengiriman (On Delivery)</option>
-                                <option value="completed">Selesai (Completed)</option>
+                                <option value="order_completed">Selesai (Order Completed)</option>
+                                <option value="cancelled">Dibatalkan (Cancelled)</option>
                             </select>
                         </div>
 
@@ -281,7 +284,7 @@
 
 
     <!-- ──────────────────────────────────────────────────────────── -->
-    <!-- 2. CUSTOMER ORDER CENTER (Existing Customer View) -->
+    <!-- 2. CUSTOMER ORDER CENTER (NOTE 6 CARD & TABS) -->
     <!-- ──────────────────────────────────────────────────────────── -->
     @else
         <!-- Breadcrumb -->
@@ -290,6 +293,13 @@
             <span class="text-gray-400">&gt;</span>
             <span class="text-[#F97316] font-bold">Pesanan Saya</span>
         </nav>
+
+        <!-- Flash messages -->
+        @if(session('success'))
+            <div class="mb-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center justify-between">
+                <span>{{ session('success') }}</span>
+            </div>
+        @endif
 
         <!-- Page Header -->
         <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -302,7 +312,7 @@
                 </p>
             </div>
 
-            <a href="{{ route('products.index') }}" 
+            <a href="{{ route('products.index') }}"
                class="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-xl shadow-xs transition-all w-fit">
                 <svg class="w-4 h-4 text-[#F97316]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -311,27 +321,27 @@
             </a>
         </div>
 
-        <!-- Filter Tabs -->
+        <!-- 4 Filter Tabs (Note 6) -->
         <div class="flex items-center gap-2 overflow-x-auto pb-2 mb-6 border-b border-gray-200">
-            <a href="{{ route('orders.index', ['tab' => 'all']) }}" 
-               class="px-4 py-2 rounded-xl text-xs font-bold transition-all {{ $activeTab === 'all' ? 'bg-[#F97316] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100' }}">
+            <a href="{{ route('orders.index', ['tab' => 'all']) }}"
+               class="px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all {{ $activeTab === 'all' ? 'bg-[#F97316] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100' }}">
                 Semua Pesanan ({{ count($allOrders) }})
             </a>
-            <a href="{{ route('orders.index', ['tab' => 'success']) }}" 
-               class="px-4 py-2 rounded-xl text-xs font-bold transition-all {{ $activeTab === 'success' ? 'bg-[#F97316] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100' }}">
+            <a href="{{ route('orders.index', ['tab' => 'success']) }}"
+               class="px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all {{ $activeTab === 'success' ? 'bg-[#F97316] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100' }}">
                 Pembayaran Sukses ({{ count($successOrders) }})
             </a>
-            <a href="{{ route('orders.index', ['tab' => 'tracking']) }}" 
-               class="px-4 py-2 rounded-xl text-xs font-bold transition-all {{ $activeTab === 'tracking' ? 'bg-[#F97316] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100' }}">
-                Dalam Proses & Pelacakan ({{ count($trackingOrders) }})
+            <a href="{{ route('orders.index', ['tab' => 'tracking']) }}"
+               class="px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all {{ $activeTab === 'tracking' ? 'bg-[#F97316] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100' }}">
+                Pesanan Dalam Proses & Pelacakan ({{ count($trackingOrders) }})
             </a>
-            <a href="{{ route('orders.index', ['tab' => 'history']) }}" 
-               class="px-4 py-2 rounded-xl text-xs font-bold transition-all {{ $activeTab === 'history' ? 'bg-[#F97316] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100' }}">
-                Riwayat Selesai ({{ count($historyOrders) }})
+            <a href="{{ route('orders.index', ['tab' => 'history']) }}"
+               class="px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all {{ $activeTab === 'history' ? 'bg-[#F97316] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100' }}">
+                Pesanan Selesai ({{ count($historyOrders) }})
             </a>
         </div>
 
-        <!-- Orders List (Customer) -->
+        <!-- Orders List (Customer Cards - Note 6) -->
         <div class="space-y-4">
             @php
                 $displayOrders = match($activeTab) {
@@ -344,50 +354,75 @@
 
             @forelse($displayOrders as $order)
                 <div class="bg-white rounded-3xl border border-gray-200/80 p-6 shadow-xs hover:shadow-md transition-all">
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
-                        <div>
-                            <span class="font-mono font-black text-sm text-gray-900">{{ $order['order_number'] }}</span>
-                            <span class="text-xs text-gray-400 ml-2">{{ date('d M Y H:i', strtotime($order['created_at'])) }}</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="px-3 py-1 rounded-full text-[11px] font-extrabold bg-emerald-100 text-emerald-800">
-                                {{ ucfirst(str_replace('_', ' ', $order['order_status'] ?? 'paid')) }}
+                    <!-- Top Row: Checkout Date + Payment Status on Far Right -->
+                    <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-gray-100">
+                        <div class="flex items-center gap-2.5">
+                            <span class="text-xs font-extrabold text-gray-900">
+                                {{ $order['created_at_formatted'] }}
                             </span>
+                            <span class="text-gray-300">•</span>
+                            <span class="font-mono text-[11px] font-bold text-gray-500">
+                                #{{ $order['order_number'] }}
+                            </span>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <x-status-badge :status="$order['order_status'] ?? 'paid'" />
+                            @if(($order['payment_status'] ?? 'paid') === 'paid')
+                                <span class="px-3 py-1 rounded-full text-[11px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                    Sudah Bayar
+                                </span>
+                            @else
+                                <span class="px-3 py-1 rounded-full text-[11px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200">
+                                    Belum Bayar
+                                </span>
+                            @endif
                         </div>
                     </div>
 
+                    <!-- Middle Rows: Item Photo + Name, Unit Price, Qty + Line Total on Far Right -->
                     <div class="py-4 space-y-3">
                         @foreach($order['items'] ?? [] as $it)
                             <div class="flex items-center justify-between gap-4">
-                                <div class="flex items-center gap-3">
-                                    <img src="{{ $it['image'] ?? 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=600' }}" 
-                                         class="w-12 h-12 rounded-xl object-cover border border-gray-100">
-                                    <div>
-                                        <h4 class="font-extrabold text-xs text-gray-900">{{ $it['product_name'] }}</h4>
-                                        <p class="text-[11px] text-gray-400">{{ $it['quantity'] }} × Rp {{ number_format($it['unit_price'], 0, ',', '.') }}</p>
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <img src="{{ $it['image'] }}"
+                                         alt="{{ $it['product_name'] }}"
+                                         class="w-12 h-12 rounded-xl object-cover border border-gray-100 shrink-0 bg-gray-50">
+                                    <div class="min-w-0">
+                                        <h4 class="font-extrabold text-xs text-gray-900 truncate">{{ $it['product_name'] }}</h4>
+                                        <p class="text-[11px] text-gray-500 mt-0.5">
+                                            Rp {{ number_format($it['unit_price'], 0, ',', '.') }} × {{ $it['quantity'] }} {{ $it['unit'] ?? 'Unit' }}
+                                        </p>
                                     </div>
                                 </div>
-                                <span class="font-black text-xs text-gray-900">
+                                <span class="font-black text-xs text-gray-900 shrink-0">
                                     Rp {{ number_format($it['subtotal'], 0, ',', '.') }}
                                 </span>
                             </div>
                         @endforeach
                     </div>
 
+                    <!-- Bottom Row: Branch & Method + Total Payment & Detail Button on Far Right -->
                     <div class="pt-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div>
-                            <span class="text-xs text-gray-500 font-semibold">Cabang: <strong class="text-gray-900">{{ $order['branch_name'] }}</strong></span>
+                        <div class="flex flex-wrap items-center gap-2.5 text-xs">
+                            <span class="px-2.5 py-1 rounded-lg bg-gray-100 font-bold text-gray-800">
+                                📍 Cabang {{ $order['branch_name'] }}
+                            </span>
+                            <span class="px-2.5 py-1 rounded-lg font-bold {{ ($order['fulfillment_method'] ?? 'pickup') === 'delivery' ? 'bg-orange-50 text-[#F97316]' : 'bg-blue-50 text-blue-700' }}">
+                                {{ ($order['fulfillment_method'] ?? 'pickup') === 'delivery' ? '🚚 Delivery' : '🏪 Pickup di Toko' }}
+                            </span>
                         </div>
+
                         <div class="flex items-center gap-4 justify-between sm:justify-end">
                             <div>
-                                <span class="text-[11px] text-gray-400 block sm:text-right">Total Pembayaran:</span>
+                                <span class="text-[11px] text-gray-400 block sm:text-right">Total Pembayaran</span>
                                 <span class="text-base font-black text-[#F97316]">
                                     Rp {{ number_format($order['total'], 0, ',', '.') }}
                                 </span>
                             </div>
-                            <button type="button" 
-                                    @click="openOrderModal('{{ $order['order_number'] }}')" 
-                                    class="px-4 py-2 rounded-xl bg-gray-900 hover:bg-black text-white font-bold text-xs shadow-xs transition-all">
+                            <button type="button"
+                                    @click="openOrderModal('{{ $order['order_number'] }}')"
+                                    class="px-4 py-2.5 rounded-xl bg-gray-900 hover:bg-black text-white font-bold text-xs shadow-xs transition-all whitespace-nowrap">
                                 Detail & Pelacakan
                             </button>
                         </div>
@@ -405,17 +440,18 @@
     @endif
 
     <!-- ──────────────────────────────────────────────────────────── -->
-    <!-- 3. SHARED ORDER DETAIL POPUP MODAL (Alpine.js) -->
+    <!-- 3. SHARED ORDER DETAIL & TRACKING POPUP MODAL (Alpine.js) -->
     <!-- ──────────────────────────────────────────────────────────── -->
     <template x-if="activeModal && modalOrder">
         <div class="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div @click.away="closeModal()" 
+            <div @click.away="closeModal()"
                  class="bg-white rounded-3xl max-w-2xl w-full p-6 md:p-8 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in duration-200">
-                
+
                 <div class="flex items-center justify-between pb-4 border-b border-gray-100 mb-6">
                     <div>
-                        <span class="text-[10px] font-mono font-bold text-[#F97316] uppercase tracking-wider block">Rincian Faktur Pesanan</span>
+                        <span class="text-[10px] font-mono font-bold text-[#F97316] uppercase tracking-wider block">Rincian Faktur & Pelacakan Pesanan</span>
                         <h3 class="font-black text-xl text-gray-900 mt-0.5" x-text="modalOrder.order_number"></h3>
+                        <p class="text-[11px] text-gray-500 mt-0.5" x-text="modalOrder.created_at_formatted"></p>
                     </div>
                     <button type="button" @click="closeModal()" class="text-gray-400 hover:text-gray-600">
                         <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -425,16 +461,43 @@
                 </div>
 
                 <!-- Modal Info Grid -->
-                <div class="grid grid-cols-2 gap-4 text-xs mb-6">
-                    <div class="p-3 bg-gray-50 rounded-2xl border border-gray-100">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs mb-6">
+                    <div class="p-3.5 bg-gray-50 rounded-2xl border border-gray-100">
                         <span class="text-[10px] font-bold text-gray-400 uppercase block">Customer</span>
                         <span class="font-extrabold text-gray-900 mt-0.5 block" x-text="modalOrder.customer_name"></span>
-                        <span class="text-[11px] text-gray-500" x-text="modalOrder.customer_email"></span>
+                        <span class="text-[11px] text-gray-500 block" x-text="modalOrder.customer_email"></span>
                     </div>
-                    <div class="p-3 bg-gray-50 rounded-2xl border border-gray-100">
-                        <span class="text-[10px] font-bold text-gray-400 uppercase block">Cabang Pelayanan</span>
-                        <span class="font-extrabold text-gray-900 mt-0.5 block" x-text="modalOrder.branch_name"></span>
-                        <span class="text-[11px] text-gray-500" x-text="modalOrder.fulfillment_method === 'delivery' ? 'Pengiriman Armada Proyek' : 'Ambil di Cabang'"></span>
+                    <div class="p-3.5 bg-gray-50 rounded-2xl border border-gray-100">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase block">Cabang & Pengambilan</span>
+                        <span class="font-extrabold text-gray-900 mt-0.5 block" x-text="'Cabang ' + modalOrder.branch_name"></span>
+                        <span class="text-[11px] text-gray-500 block" x-text="modalOrder.fulfillment_method === 'delivery' ? ('Delivery: ' + (modalOrder.delivery_address || '-')) : ('Pickup di Toko: ' + (modalOrder.branch_address || 'Build n Fix ' + modalOrder.branch_name))"></span>
+                    </div>
+                </div>
+
+                <!-- Tracking Timeline -->
+                <div class="mb-6">
+                    <h4 class="text-xs font-extrabold text-gray-900 uppercase mb-3">Pelacakan Pesanan</h4>
+                    <div class="relative pl-6 border-l-2 border-gray-200 space-y-4">
+                        <template x-for="(step, idx) in (modalOrder.timeline || [])" :key="step.key">
+                            <div class="relative">
+                                <div class="absolute -left-[31px] top-0.5 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
+                                     :class="step.current ? 'bg-[#F97316] text-white ring-4 ring-orange-100 shadow-md' : (step.completed ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-400')">
+                                    <span x-text="step.completed && !step.current ? '✓' : (idx + 1)"></span>
+                                </div>
+                                <div class="rounded-xl p-3 border"
+                                     :class="step.current ? 'bg-orange-50/40 border-orange-200' : 'bg-gray-50/80 border-gray-100'">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <h5 class="text-xs font-extrabold"
+                                            :class="step.current ? 'text-[#F97316]' : (step.completed ? 'text-gray-900' : 'text-gray-400')"
+                                            x-text="step.label"></h5>
+                                        <template x-if="step.current">
+                                            <span class="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-[#F97316] text-white">Status Saat Ini</span>
+                                        </template>
+                                    </div>
+                                    <p class="text-[11px] text-gray-500 mt-1" x-text="step.description"></p>
+                                </div>
+                            </div>
+                        </template>
                     </div>
                 </div>
 
@@ -442,14 +505,13 @@
                 <div class="space-y-3 mb-6">
                     <h4 class="text-xs font-extrabold text-gray-900 uppercase">Item yang Dipesan</h4>
                     <div class="border border-gray-100 rounded-2xl overflow-hidden divide-y divide-gray-100">
-                        <template x-for="item in (modalOrder.items || [])" :key="item.product_name">
+                        <template x-for="item in (modalOrder.items || [])" :key="item.sku + item.product_name">
                             <div class="p-3 flex items-center justify-between gap-4">
                                 <div class="flex items-center gap-3">
-                                    <img :src="item.image || 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=600'" 
-                                         class="w-10 h-10 rounded-xl object-cover bg-gray-50">
+                                    <img :src="item.image" class="w-10 h-10 rounded-xl object-cover bg-gray-50">
                                     <div>
                                         <p class="font-extrabold text-xs text-gray-900" x-text="item.product_name"></p>
-                                        <p class="text-[10px] text-gray-400 font-mono" x-text="'Qty: ' + item.quantity + ' × ' + formatRupiah(item.unit_price)"></p>
+                                        <p class="text-[10px] text-gray-400 font-mono" x-text="formatRupiah(item.unit_price) + ' × ' + item.quantity"></p>
                                     </div>
                                 </div>
                                 <span class="font-black text-xs text-gray-900" x-text="formatRupiah(item.subtotal)"></span>
@@ -459,12 +521,22 @@
                 </div>
 
                 <!-- Total Box -->
-                <div class="p-4 bg-orange-50/60 rounded-2xl border border-orange-100 flex items-center justify-between">
-                    <div>
-                        <span class="text-xs text-gray-600 font-semibold">Total Tagihan:</span>
-                        <p class="text-lg font-black text-[#F97316]" x-text="formatRupiah(modalOrder.total)"></p>
+                <div class="p-4 bg-orange-50/60 rounded-2xl border border-orange-100 space-y-2">
+                    <div class="flex items-center justify-between text-xs text-gray-600">
+                        <span>Subtotal</span>
+                        <span class="font-bold text-gray-900" x-text="formatRupiah(modalOrder.subtotal)"></span>
                     </div>
-                    <span class="px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800" x-text="'Status: ' + (modalOrder.order_status || 'paid')"></span>
+                    <div class="flex items-center justify-between text-xs text-gray-600">
+                        <span>Biaya Pengiriman</span>
+                        <span class="font-bold text-gray-900" x-text="formatRupiah(modalOrder.delivery_fee)"></span>
+                    </div>
+                    <div class="pt-2 border-t border-orange-200/70 flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-gray-600 font-semibold">Total Pembayaran</span>
+                            <p class="text-lg font-black text-[#F97316]" x-text="formatRupiah(modalOrder.total)"></p>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800" x-text="modalOrder.payment_badge_label + ' • ' + modalOrder.status_label"></span>
+                    </div>
                 </div>
 
                 <div class="mt-6 pt-4 border-t border-gray-100 flex justify-end">

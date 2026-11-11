@@ -138,7 +138,7 @@
                             <span class="text-[11px] font-bold text-gray-600 uppercase">Produk yang Disuplai ({{ count($s['products'] ?? []) }}):</span>
                             @if($role === 'admin')
                                 <button type="button" 
-                                        @click="openAssignModal({{ $s['id'] }}, '{{ $s['name'] }}')" 
+                                        @click="openAssignModal({{ $s->id }}, {{ Js::from($s->name) }})" 
                                         class="text-[11px] font-bold text-[#F97316] hover:underline">
                                     + Tambah Produk
                                 </button>

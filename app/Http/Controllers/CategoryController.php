@@ -2,48 +2,93 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\CategoryService;
-use App\Services\ProductService;
+use App\Http\Requests\Category\StoreCategoryRequest;
+use App\Http\Requests\Category\UpdateCategoryRequest;
+use App\Models\Category;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\View\View;
 
 class CategoryController extends Controller
 {
-    public function __construct(
-        protected CategoryService $categoryService,
-        protected ProductService $productService
-    ) {}
-
-    public function index(Request $request)
+    public function index(Request $request): View|RedirectResponse
     {
-        $role = session('user.role', 'customer');
-        $selectedCategory = $request->get('category', 'all');
-        $selectedBranches = (array) $request->get('branches', []);
-        $location = $request->get('location');
-        $sort = $request->get('sort', 'terpopuler');
-        $view = $request->get('view', 'grid');
+        $role = auth()->user()?->role ?? 'customer';
+
+        if (! in_array($role, ['admin', 'owner'], true)) {
+            $query = array_filter([
+                'category' => $request->query('category'),
+                'q' => $request->query('q'),
+                'sort' => $request->query('sort'),
+                'view' => $request->query('view'),
+            ], static fn (?string $value): bool => $value !== null && $value !== '');
+
+            return redirect()->route('products.index', $query);
+        }
+
+        $selectedCategory = (string) $request->get('category', 'all');
+        $sort = (string) $request->get('sort', 'terpopuler');
+        $view = (string) $request->get('view', 'grid');
         $search = $request->get('q');
 
-        $result = $this->categoryService->getFilteredCategories([
-            'category' => $selectedCategory,
-            'branches' => $selectedBranches,
-            'location' => $location,
-            'search' => $search,
-        ], $sort);
+        $sidebarCategories = Category::query()
+            ->withCount('products')
+            ->orderBy('popular_rank')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (Category $cat): array => [
+                'id' => $cat->id,
+                'slug' => $cat->slug,
+                'name' => $cat->name,
+                'count' => $cat->products_count,
+            ])
+            ->all();
 
-        return view('categories.index', array_merge($result, [
+        $query = Category::query()
+            ->withCount('products')
+            ->search(is_string($search) ? $search : null);
+
+        if ($selectedCategory !== '' && ! in_array(strtolower($selectedCategory), ['all', 'semua'], true)) {
+            $query->where(function ($q) use ($selectedCategory): void {
+                if (is_numeric($selectedCategory)) {
+                    $q->where('id', (int) $selectedCategory);
+                }
+
+                $q->orWhere('slug', $selectedCategory)
+                    ->orWhere('name', $selectedCategory);
+            });
+        }
+
+        match (strtolower($sort)) {
+            'a-z' => $query->orderBy('name', 'asc'),
+            'z-a' => $query->orderBy('name', 'desc'),
+            'jumlah-produk', 'count' => $query->orderBy('products_count', 'desc'),
+            default => $query->orderBy('popular_rank', 'asc')->orderBy('id', 'asc'),
+        };
+
+        $categories = $query->get();
+        $total = $categories->count();
+        $from = $total > 0 ? 1 : 0;
+        $to = $total;
+
+        return view('categories.index', [
             'role' => $role,
+            'categories' => $categories,
+            'total' => $total,
+            'from' => $from,
+            'to' => $to,
+            'sidebarCategories' => $sidebarCategories,
             'selectedCategory' => $selectedCategory,
-            'selectedBranches' => $selectedBranches,
-            'location' => $location,
             'sort' => $sort,
             'view' => $view,
             'search' => $search,
-        ]));
+        ]);
     }
 
-    public function create()
+    public function create(): View|RedirectResponse
     {
-        $role = session('user.role', 'customer');
+        $role = auth()->user()?->role ?? 'customer';
         if ($role !== 'admin') {
             return redirect()->route('categories.index')->with('error', 'Hanya Admin yang dapat menambah kategori.');
         }
@@ -51,121 +96,113 @@ class CategoryController extends Controller
         return view('categories.create', ['role' => $role]);
     }
 
-    public function store(Request $request)
+    public function store(StoreCategoryRequest $request): RedirectResponse
     {
-        $role = session('user.role', 'customer');
-        if ($role !== 'admin') {
-            return redirect()->route('categories.index')->with('error', 'Hanya Admin yang dapat menyimpan kategori.');
-        }
+        $validated = $request->validated();
+        $name = trim($validated['name']);
+        $slug = $this->generateUniqueSlug($name);
+        $nextRank = ((int) Category::max('popular_rank')) + 1;
 
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'status' => 'required|in:active,inactive',
-            'image' => 'nullable|string',
+        $category = Category::create([
+            'name' => $name,
+            'slug' => $slug,
+            'description' => $validated['description'] ?? '',
+            'status' => $validated['status'],
+            'image' => ($validated['image'] ?? '') !== ''
+                ? $validated['image']
+                : 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&auto=format&fit=crop&q=80',
+            'popular_rank' => $nextRank,
         ]);
 
-        $category = $this->categoryService->createCategory($request->only([
-            'name', 'description', 'status', 'image', 'branches',
-        ]));
-
         return redirect()->route('categories.index')
-            ->with('success', 'Kategori "'.$category['name'].'" berhasil ditambahkan.');
+            ->with('success', 'Kategori "'.$category->name.'" berhasil ditambahkan.');
     }
 
-    public function show($category, Request $request)
+    public function show(string|int $category): RedirectResponse
     {
-        $role = session('user.role', 'customer');
-        $categoryData = $this->categoryService->getCategoryByIdOrSlug($category);
+        $categoryModel = Category::findByIdentifier($category);
 
-        if (! $categoryData) {
-            return redirect()->route('categories.index')->with('error', 'Kategori tidak ditemukan.');
+        if (! $categoryModel) {
+            return redirect()->route('products.index')->with('error', 'Kategori tidak ditemukan.');
         }
 
-        $sort = $request->get('sort', 'terpopuler');
-        $view = $request->get('view', 'grid');
-        $selectedBranches = (array) $request->get('branches', []);
-        $minPrice = $request->get('min_price');
-        $maxPrice = $request->get('max_price');
-
-        // Fetch products using ProductService
-        $productResult = $this->productService->getFilteredProducts([
-            'category' => $categoryData['id'],
-            'branches' => $selectedBranches,
-            'min_price' => $minPrice,
-            'max_price' => $maxPrice,
-        ], $sort);
-
-        return view('categories.show', array_merge($productResult, [
-            'role' => $role,
-            'category' => $categoryData,
-            'sort' => $sort,
-            'view' => $view,
-            'selectedBranches' => $selectedBranches,
-            'minPrice' => $minPrice,
-            'maxPrice' => $maxPrice,
-        ]));
+        return redirect()->route('products.index', ['category' => $categoryModel->slug]);
     }
 
-    public function edit($category)
+    public function edit(string|int $category): View|RedirectResponse
     {
-        $role = session('user.role', 'customer');
+        $role = auth()->user()?->role ?? 'customer';
         if ($role !== 'admin') {
             return redirect()->route('categories.index')->with('error', 'Hanya Admin yang dapat mengubah kategori.');
         }
 
-        $categoryData = $this->categoryService->getCategoryByIdOrSlug($category);
+        $categoryModel = Category::findByIdentifier($category);
 
-        if (! $categoryData) {
+        if (! $categoryModel) {
             return redirect()->route('categories.index')->with('error', 'Kategori tidak ditemukan.');
         }
 
         return view('categories.edit', [
             'role' => $role,
-            'category' => $categoryData,
+            'category' => $categoryModel,
         ]);
     }
 
-    public function update(Request $request, $category)
+    public function update(UpdateCategoryRequest $request, string|int $category): RedirectResponse
     {
-        $role = session('user.role', 'customer');
-        if ($role !== 'admin') {
-            return redirect()->route('categories.index')->with('error', 'Hanya Admin yang dapat mengubah kategori.');
-        }
-
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'status' => 'required|in:active,inactive',
-            'image' => 'nullable|string',
-        ]);
-
-        $updated = $this->categoryService->updateCategory($category, $request->only([
-            'name', 'description', 'status', 'image', 'branches',
-        ]));
-
-        if (! $updated) {
+        $categoryModel = Category::findByIdentifier($category);
+        if (! $categoryModel) {
             return redirect()->route('categories.index')->with('error', 'Gagal memperbarui kategori.');
         }
 
-        return redirect()->route('categories.show', $updated['slug'])
-            ->with('success', 'Kategori "'.$updated['name'].'" berhasil diperbarui.');
+        $validated = $request->validated();
+        $name = trim($validated['name']);
+
+        $categoryModel->update([
+            'name' => $name,
+            'slug' => $this->generateUniqueSlug($name, $categoryModel->id),
+            'description' => $validated['description'] ?? '',
+            'status' => $validated['status'],
+            'image' => ($validated['image'] ?? '') !== '' ? $validated['image'] : $categoryModel->image,
+        ]);
+
+        return redirect()->route('categories.index')
+            ->with('success', 'Kategori "'.$categoryModel->name.'" berhasil diperbarui.');
     }
 
-    public function destroy($category)
+    public function destroy(string|int $category): RedirectResponse
     {
-        $role = session('user.role', 'customer');
+        $role = auth()->user()?->role ?? 'customer';
         if ($role !== 'admin') {
             return redirect()->route('categories.index')->with('error', 'Hanya Admin yang dapat menghapus kategori.');
         }
 
-        $deleted = $this->categoryService->deleteCategory($category);
-
-        if (! $deleted) {
+        $categoryModel = Category::findByIdentifier($category);
+        if (! $categoryModel) {
             return redirect()->route('categories.index')->with('error', 'Gagal menghapus kategori.');
         }
 
+        $categoryModel->delete();
+
         return redirect()->route('categories.index')
             ->with('success', 'Kategori berhasil dihapus.');
+    }
+
+    private function generateUniqueSlug(string $name, ?int $ignoreId = null): string
+    {
+        $base = Str::slug($name);
+        $base = $base !== '' ? $base : 'kategori';
+        $slug = $base;
+        $counter = 2;
+
+        while (Category::query()
+            ->where('slug', $slug)
+            ->when($ignoreId !== null, fn ($q) => $q->where('id', '!=', $ignoreId))
+            ->exists()) {
+            $slug = $base.'-'.$counter;
+            $counter++;
+        }
+
+        return $slug;
     }
 }

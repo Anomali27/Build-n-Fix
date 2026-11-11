@@ -15,11 +15,31 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->call([
+            BranchSeeder::class,
+            CategorySeeder::class,
+            ProductSeeder::class,
+            BranchStockSeeder::class,
+            SupplierSeeder::class,
+        ]);
+
         // User::factory(10)->create();
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        $accounts = [
+            ['name' => 'Customer', 'email' => 'customer@buildnfix.test', 'role' => 'customer', 'branch' => null],
+            ['name' => 'Admin Serdam', 'email' => 'admin.serdam@buildnfix.test', 'role' => 'admin', 'branch' => 'Serdam'],
+            ['name' => 'Admin Gajahmada', 'email' => 'admin.gajahmada@buildnfix.test', 'role' => 'admin', 'branch' => 'Gajahmada'],
+            ['name' => 'Admin Kota Baru', 'email' => 'admin.kotabaru@buildnfix.test', 'role' => 'admin', 'branch' => 'Kota Baru'],
+            ['name' => 'Owner', 'email' => 'owner@buildnfix.test', 'role' => 'owner', 'branch' => 'all'],
+        ];
+
+        foreach ($accounts as $account) {
+            User::factory()->create($account); // password: "password"
+        }
+
+        $this->call([
+            StockMovementSeeder::class,
+            OrderSeeder::class,
         ]);
     }
 }

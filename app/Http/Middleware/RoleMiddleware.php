@@ -4,7 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 class RoleMiddleware
@@ -17,12 +17,11 @@ class RoleMiddleware
      */
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
-        if (! Session::has('user')) {
+        if (! Auth::check()) {
             return redirect()->route('login')->with('auth_error', 'Please sign in to access this page.');
         }
 
-        $user = Session::get('user');
-        $userRole = $user['role'] ?? '';
+        $userRole = Auth::user()->role ?? '';
 
         if (! in_array($userRole, $roles, true)) {
             abort(403, 'You do not have permission to access this page.');

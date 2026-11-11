@@ -85,9 +85,11 @@
             <select name="branch" onchange="this.form.submit()" 
                     class="w-full sm:w-48 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F97316]">
                 <option value="all" {{ $currentBranch === 'all' ? 'selected' : '' }}>Semua Cabang</option>
-                <option value="Serdam" {{ $currentBranch === 'Serdam' ? 'selected' : '' }}>Cabang Serdam</option>
-                <option value="Gajahmada" {{ $currentBranch === 'Gajahmada' ? 'selected' : '' }}>Cabang Gajahmada</option>
-                <option value="Kota Baru" {{ $currentBranch === 'Kota Baru' ? 'selected' : '' }}>Cabang Kota Baru</option>
+                @foreach($branches as $b)
+                    <option value="{{ $b->name }}" {{ (string) $currentBranch === $b->name || (string) $currentBranch === (string) $b->id ? 'selected' : '' }}>
+                        Cabang {{ $b->name }}
+                    </option>
+                @endforeach
             </select>
 
             <button type="submit" class="px-4 py-2 bg-gray-900 text-white font-bold text-xs rounded-xl shadow-xs">
@@ -96,7 +98,7 @@
         </form>
 
         <div class="text-xs text-gray-500 font-semibold">
-            Ditemukan <strong class="text-gray-900">{{ count($movements) }}</strong> mutasi
+            Ditemukan <strong class="text-gray-900">{{ $movements->count() }}</strong> mutasi
         </div>
     </div>
 
@@ -120,27 +122,27 @@
                         <tr class="hover:bg-gray-50/80 transition-colors">
                             <!-- Ref & Time -->
                             <td class="py-4 px-6">
-                                <span class="font-mono font-bold text-gray-900 block">{{ $m['reference_no'] }}</span>
-                                <span class="text-[10px] text-gray-400 mt-0.5 block">{{ $m['date'] }}</span>
+                                <span class="font-mono font-bold text-gray-900 block">{{ $m->reference_no }}</span>
+                                <span class="text-[10px] text-gray-400 mt-0.5 block">{{ $m->moved_at?->format('Y-m-d H:i') ?? $m->created_at?->format('Y-m-d H:i') }}</span>
                             </td>
 
                             <!-- Product -->
                             <td class="py-4 px-4">
-                                <span class="font-extrabold text-gray-900 block max-w-[220px] truncate">{{ $m['product_name'] }}</span>
-                                <span class="text-[10px] font-mono text-gray-400">{{ $m['product_sku'] }}</span>
+                                <span class="font-extrabold text-gray-900 block max-w-[220px] truncate">{{ $m->product?->name ?? 'Produk' }}</span>
+                                <span class="text-[10px] font-mono text-gray-400">{{ $m->product?->sku ?? '-' }}</span>
                             </td>
 
                             <!-- Branch -->
                             <td class="py-4 px-4">
                                 <span class="px-2.5 py-1 rounded-lg bg-gray-100 font-bold text-[11px] text-gray-700">
-                                    {{ $m['branch_name'] }}
+                                    {{ $m->branch?->name ?? '-' }}
                                 </span>
                             </td>
 
                             <!-- Type -->
                             <td class="py-4 px-4">
                                 @php
-                                    $t = $m['type'] ?? 'in';
+                                    $t = $m->type ?? 'in';
                                     $tStyle = match($t) {
                                         'in' => 'bg-emerald-100 text-emerald-800 border-emerald-200',
                                         'out' => 'bg-rose-100 text-rose-800 border-rose-200',
@@ -148,26 +150,26 @@
                                     };
                                 @endphp
                                 <span class="px-2.5 py-1 rounded-full text-[10px] font-black border {{ $tStyle }}">
-                                    {{ $m['type_label'] }}
+                                    {{ $m->type_label }}
                                 </span>
                             </td>
 
                             <!-- Qty -->
                             <td class="py-4 px-4 text-center">
-                                <span class="font-black text-sm {{ $m['type'] === 'in' ? 'text-emerald-600' : ($m['type'] === 'out' ? 'text-rose-600' : 'text-amber-600') }}">
-                                    {{ $m['type'] === 'in' ? '+' : ($m['type'] === 'out' ? '-' : ($m['quantity'] > 0 ? '+' : '')) }}{{ $m['quantity'] }}
+                                <span class="font-black text-sm {{ $m->type === 'in' ? 'text-emerald-600' : ($m->type === 'out' ? 'text-rose-600' : 'text-amber-600') }}">
+                                    {{ $m->type === 'in' ? '+' : ($m->type === 'out' ? '-' : ($m->quantity > 0 ? '+' : '')) }}{{ $m->quantity }}
                                 </span>
                             </td>
 
                             <!-- Balance -->
                             <td class="py-4 px-4 text-center font-bold text-gray-900">
-                                {{ $m['current_stock'] }}
+                                {{ $m->current_stock }}
                             </td>
 
                             <!-- Source & Notes -->
                             <td class="py-4 px-6">
-                                <p class="font-semibold text-gray-800">{{ $m['source'] }}</p>
-                                <p class="text-[10px] text-gray-400 mt-0.5">{{ $m['notes'] }} • Oleh: {{ $m['admin_name'] }}</p>
+                                <p class="font-semibold text-gray-800">{{ $m->source }}</p>
+                                <p class="text-[10px] text-gray-400 mt-0.5">{{ $m->notes ?: '-' }} • Oleh: {{ $m->user?->name ?? $m->actor_name }}</p>
                             </td>
                         </tr>
                     @empty

@@ -9,7 +9,7 @@
     $imageUrl = \Illuminate\Support\Str::startsWith($image, ['http://', 'https://']) 
         ? $image 
         : asset($image);
-    $targetUrl = $productUrl ?? (Route::has('categories.index') ? route('categories.index') : route('products.index'));
+    $targetUrl = $productUrl ?? route('products.index');
 @endphp
 
 <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden hover:shadow-md hover:border-gray-300 transition-all duration-200 flex flex-col h-full">

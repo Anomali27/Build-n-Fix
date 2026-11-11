@@ -28,6 +28,14 @@
             @csrf
             @method('PUT')
 
+            @if($errors->any())
+                <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold space-y-1">
+                    @foreach($errors->all() as $error)
+                        <div>{{ $error }}</div>
+                    @endforeach
+                </div>
+            @endif
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div class="md:col-span-2">
                     <label class="block text-xs font-bold text-gray-700 uppercase mb-2">Nama Perusahaan / Pemasok <span class="text-rose-500">*</span></label>

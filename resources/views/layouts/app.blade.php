@@ -1,5 +1,5 @@
 @php
-    $userRole = session('user.role', 'customer');
+    $userRole = auth()->user()?->role ?? 'customer';
 @endphp
 <!DOCTYPE html>
 <html lang="id" class="scroll-smooth">
