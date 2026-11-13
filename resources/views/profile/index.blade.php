@@ -8,13 +8,13 @@
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
             <div class="flex items-center gap-3">
                 @if(auth()->user()?->role === 'customer')
-                    <a href="{{ route('home') }}"
-                       class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-gray-50 border border-gray-200 hover:border-gray-300 text-gray-700 text-xs font-bold rounded-xl transition-colors shadow-xs shrink-0">
+                    <button type="button" onclick="history.back()"
+                            class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-gray-50 border border-gray-200 hover:border-gray-300 text-gray-700 text-xs font-bold rounded-xl transition-colors shadow-xs shrink-0 cursor-pointer">
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
                         </svg>
                         Kembali
-                    </a>
+                    </button>
                 @endif
                 <div>
                 <h1 class="text-2xl sm:text-3xl font-extrabold text-[#111111] tracking-tight">

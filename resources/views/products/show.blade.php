@@ -152,13 +152,13 @@
     <!-- BACK BUTTON (Customer only) -->
     @if($userRole === 'customer')
         <div class="mb-5">
-            <a href="{{ route('products.index') }}"
-               class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-gray-50 border border-gray-200 hover:border-gray-300 text-gray-700 text-xs font-bold rounded-xl transition-colors shadow-xs">
+            <button type="button" onclick="history.back()"
+                    class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-gray-50 border border-gray-200 hover:border-gray-300 text-gray-700 text-xs font-bold rounded-xl transition-colors shadow-xs cursor-pointer">
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
                 </svg>
-                Kembali ke Produk
-            </a>
+                Kembali
+            </button>
         </div>
     @endif
 
