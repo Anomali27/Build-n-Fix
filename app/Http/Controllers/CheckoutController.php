@@ -31,6 +31,10 @@ class CheckoutController extends Controller
 
     public function index(Request $request): View|RedirectResponse
     {
+        if ($denied = $this->authorizeCustomer($request)) {
+            return $denied;
+        }
+
         /** @var User $user */
         $user = $request->user();
         $requestedItems = array_values(array_filter(array_map('intval', (array) $request->query('items', []))));
@@ -65,6 +69,10 @@ class CheckoutController extends Controller
 
     public function store(StoreCheckoutRequest $request): RedirectResponse
     {
+        if ($denied = $this->authorizeCustomer($request)) {
+            return $denied;
+        }
+
         /** @var User $user */
         $user = $request->user();
         $checkoutData = $this->buildCheckoutData($user);
@@ -100,6 +108,10 @@ class CheckoutController extends Controller
 
     public function payment(Request $request): View|RedirectResponse
     {
+        if ($denied = $this->authorizeCustomer($request)) {
+            return $denied;
+        }
+
         /** @var User $user */
         $user = $request->user();
         $checkoutData = $this->buildCheckoutData($user);
@@ -118,6 +130,10 @@ class CheckoutController extends Controller
 
     public function processPayment(ProcessPaymentRequest $request): RedirectResponse
     {
+        if ($denied = $this->authorizeCustomer($request)) {
+            return $denied;
+        }
+
         /** @var User $user */
         $user = $request->user();
         $validated = $request->validated();
@@ -517,5 +533,20 @@ class CheckoutController extends Controller
         $id = Branch::where('name', $clean)->value('id');
 
         return $id !== null ? (int) $id : null;
+    }
+
+    /**
+     * Authorize that the current authenticated user has customer role.
+     */
+    private function authorizeCustomer(Request $request): ?RedirectResponse
+    {
+        $role = $request->user()?->role;
+
+        if ($role !== 'customer') {
+            return redirect()->route('dashboard')
+                ->with('error', 'Akses ditolak. Fitur Checkout hanya dapat diakses oleh akun Customer.');
+        }
+
+        return null;
     }
 }
