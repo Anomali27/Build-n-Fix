@@ -88,7 +88,7 @@ Route::middleware('auth')->prefix('cart')->name('cart.')->group(function () {
     Route::delete('/', [CartController::class, 'clear'])->name('clear');
 });
 
-Route::middleware('auth')->prefix('checkout')->name('checkout.')->group(function () {
+Route::middleware(['auth', 'role:customer'])->prefix('checkout')->name('checkout.')->group(function () {
     Route::get('/', [CheckoutController::class, 'index'])->name('index');
     Route::post('/', [CheckoutController::class, 'store'])->name('store');
     Route::get('/payment', [CheckoutController::class, 'payment'])->name('payment');

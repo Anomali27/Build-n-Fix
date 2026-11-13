@@ -197,16 +197,18 @@
                             </div>
 
                             <div class="flex items-center gap-2 pl-7 sm:pl-0">
-                                @if($group['is_valid'])
-                                    <a href="{{ route('checkout.index', ['branch' => $group['branch_id']]) }}"
-                                       class="px-4 py-2 rounded-xl bg-[#F97316] hover:bg-orange-600 text-white text-xs font-extrabold shadow-sm shadow-orange-500/20 transition-all whitespace-nowrap">
-                                        Checkout Cabang {{ $group['branch_name'] }}
-                                    </a>
-                                @else
-                                    <button type="button" disabled
-                                            class="px-4 py-2 rounded-xl bg-gray-200 text-gray-400 text-xs font-extrabold cursor-not-allowed whitespace-nowrap">
-                                        Perbaiki Stok Dahulu
-                                    </button>
+                                @if(auth()->user()?->role === 'customer')
+                                    @if($group['is_valid'])
+                                        <a href="{{ route('checkout.index', ['branch' => $group['branch_id']]) }}"
+                                           class="px-4 py-2 rounded-xl bg-[#F97316] hover:bg-orange-600 text-white text-xs font-extrabold shadow-sm shadow-orange-500/20 transition-all whitespace-nowrap">
+                                            Checkout Cabang {{ $group['branch_name'] }}
+                                        </a>
+                                    @else
+                                        <button type="button" disabled
+                                                class="px-4 py-2 rounded-xl bg-gray-200 text-gray-400 text-xs font-extrabold cursor-not-allowed whitespace-nowrap">
+                                            Perbaiki Stok Dahulu
+                                        </button>
+                                    @endif
                                 @endif
                             </div>
                         </div>
@@ -273,27 +275,39 @@
                         </div>
                     </div>
 
-                    <!-- Multi-Selection Checkout Form -->
-                    <form method="GET" action="{{ route('checkout.index') }}" class="space-y-2.5 pt-1">
-                        <template x-for="id in selectedIds" :key="id">
-                            <input type="hidden" name="items[]" :value="id">
-                        </template>
+                    @if(auth()->user()?->role === 'customer')
+                        <!-- Multi-Selection Checkout Form -->
+                        <form method="GET" action="{{ route('checkout.index') }}" class="space-y-2.5 pt-1">
+                            <template x-for="id in selectedIds" :key="id">
+                                <input type="hidden" name="items[]" :value="id">
+                            </template>
 
-                        <button type="submit"
-                                :disabled="selectedCount() === 0"
-                                :class="selectedCount() === 0 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-[#F97316] hover:bg-orange-600 text-white shadow-md shadow-orange-500/20 active:scale-98'"
-                                class="w-full py-3.5 rounded-2xl text-xs font-extrabold transition-all flex items-center justify-center gap-2">
-                            <span>Checkout Terpilih (<span x-text="selectedCount()"></span>)</span>
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                            </svg>
-                        </button>
+                            <button type="submit"
+                                    :disabled="selectedCount() === 0"
+                                    :class="selectedCount() === 0 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-[#F97316] hover:bg-orange-600 text-white shadow-md shadow-orange-500/20 active:scale-98'"
+                                    class="w-full py-3.5 rounded-2xl text-xs font-extrabold transition-all flex items-center justify-center gap-2">
+                                <span>Checkout Terpilih (<span x-text="selectedCount()"></span>)</span>
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                </svg>
+                            </button>
 
-                        <a href="{{ route('products.index') }}"
-                           class="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-2xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5">
-                            <span>Lanjut Belanja</span>
-                        </a>
-                    </form>
+                            <a href="{{ route('products.index') }}"
+                               class="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-2xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5">
+                                <span>Lanjut Belanja</span>
+                            </a>
+                        </form>
+                    @else
+                        <div class="space-y-3 pt-1">
+                            <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-800 text-xs font-semibold text-center">
+                                Akun {{ ucfirst(auth()->user()?->role ?? 'Staf') }} tidak memiliki izin untuk melakukan Checkout.
+                            </div>
+                            <a href="{{ route('dashboard') }}"
+                               class="w-full py-3 bg-gray-900 hover:bg-black text-white rounded-2xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5">
+                                <span>Kembali ke Dashboard</span>
+                            </a>
+                        </div>
+                    @endif
 
                 </div>
             </div>

@@ -461,26 +461,32 @@
             </div>
 
             <!-- D. ACTION BUTTONS: TAMBAH KE KERANJANG & BELI SEKARANG -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                <button type="button"
-                        @click="addToCart()"
-                        :disabled="selectedBranchStock === 0"
-                        :class="selectedBranchStock === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-orange-600 active:scale-95 shadow-md shadow-orange-500/20'"
-                        class="w-full py-4 bg-[#F97316] text-white rounded-2xl font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    Tambah ke Keranjang
-                </button>
+            @if($userRole === 'customer')
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                    <button type="button"
+                            @click="addToCart()"
+                            :disabled="selectedBranchStock === 0"
+                            :class="selectedBranchStock === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-orange-600 active:scale-95 shadow-md shadow-orange-500/20'"
+                            class="w-full py-4 bg-[#F97316] text-white rounded-2xl font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        Tambah ke Keranjang
+                    </button>
 
-                <button type="button"
-                        @click="buyNow()"
-                        :disabled="selectedBranchStock === 0"
-                        :class="selectedBranchStock === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50 active:scale-95'"
-                        class="w-full py-4 bg-white text-[#111111] border-2 border-gray-900 rounded-2xl font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-sm">
-                    Beli Sekarang
-                </button>
-            </div>
+                    <button type="button"
+                            @click="buyNow()"
+                            :disabled="selectedBranchStock === 0"
+                            :class="selectedBranchStock === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50 active:scale-95'"
+                            class="w-full py-4 bg-white text-[#111111] border-2 border-gray-900 rounded-2xl font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-sm">
+                        Beli Sekarang
+                    </button>
+                </div>
+            @else
+                <div class="p-4 bg-gray-50 rounded-2xl border border-gray-200 text-xs text-gray-500 font-semibold text-center">
+                    Akun {{ ucfirst($userRole) }} tidak memiliki fitur pembelian atau transaksi Checkout.
+                </div>
+            @endif
 
         </div>
     </div>
@@ -522,6 +528,7 @@
     </div>
 
     <!-- 6. CONFIRMATION MODAL -->
+    @if($userRole === 'customer')
     <template x-if="showConfirmModal">
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
              @click.self="showConfirmModal = false">
@@ -598,17 +605,20 @@
                         </button>
                     </template>
 
-                    <template x-if="actionType === 'buynow'">
-                        <button type="button"
-                                @click="confirmBuyNow()"
-                                class="py-3 bg-[#111111] hover:bg-black text-white rounded-2xl text-xs font-extrabold shadow-md flex items-center justify-center transition-all">
-                            Lanjut ke Checkout
-                        </button>
-                    </template>
+                    @if($userRole === 'customer')
+                        <template x-if="actionType === 'buynow'">
+                            <button type="button"
+                                    @click="confirmBuyNow()"
+                                    class="py-3 bg-[#111111] hover:bg-black text-white rounded-2xl text-xs font-extrabold shadow-md flex items-center justify-center transition-all">
+                                Lanjut ke Checkout
+                            </button>
+                        </template>
+                    @endif
                 </div>
             </div>
         </div>
     </template>
+    @endif
 
     <!-- 7. FLOATING SUCCESS TOAST -->
     <template x-if="showSuccessToast">
