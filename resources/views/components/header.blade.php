@@ -41,9 +41,6 @@
                     class="{{ request()->routeIs('products.*') ? 'text-[#F97316]' : 'text-gray-300 hover:text-white' }} transition-colors">
                     Produk
                 </a>
-                <a href="{{ route('home') }}#category" class="text-gray-300 hover:text-[#F97316] transition-colors">
-                    Kategori
-                </a>
                 <a href="{{ route('locations.index') }}" class="{{ request()->routeIs('locations.*') ? 'text-[#F97316]' : 'text-gray-300 hover:text-[#F97316]' }} transition-colors">
                     Lokasi Toko
                 </a>
