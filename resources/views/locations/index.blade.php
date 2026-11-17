@@ -7,14 +7,14 @@
             <!-- Page Header -->
             <div class="mb-8 md:mb-12">
                 <!-- Back Button -->
-                <a href="{{ route('home') }}"
-                    class="inline-flex items-center gap-2 px-4 py-2 bg-white text-[#111111] border border-gray-200 rounded-xl font-medium text-sm hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 shadow-sm mb-6">
+                <button type="button" onclick="history.back()"
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-white text-[#111111] border border-gray-200 rounded-xl font-medium text-sm hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 shadow-sm mb-6 cursor-pointer">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
                     <span>Kembali</span>
-                </a>
+                </button>
 
                 <!-- Header Typography -->
                 <h1 class="text-3xl md:text-4xl font-extrabold text-[#111111] tracking-tight mb-3">
