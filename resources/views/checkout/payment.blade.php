@@ -9,30 +9,31 @@
     }
 }">
 
-    <!-- 1. BREADCRUMB -->
-    <nav class="flex items-center gap-2 text-xs font-semibold text-gray-500 mb-6 flex-wrap">
-        <a href="{{ route('home') }}" class="hover:text-[#F97316] transition-colors">Home</a>
-        <span class="text-gray-400">&gt;</span>
-        <a href="{{ route('cart.index') }}" class="hover:text-[#F97316] transition-colors">Cart</a>
-        <span class="text-gray-400">&gt;</span>
-        <a href="{{ route('checkout.index', ['keep' => 1]) }}" class="hover:text-[#F97316] transition-colors">Checkout</a>
-        <span class="text-gray-400">&gt;</span>
-        <span class="text-[#F97316] font-bold">Payment</span>
-    </nav>
+    <!-- 1. BREADCRUMB & BACK BUTTON -->
+    <div class="flex items-center justify-between gap-4 mb-6 flex-wrap">
+        <nav class="flex items-center gap-2 text-xs font-semibold text-gray-500 flex-wrap">
+            <a href="{{ route('home') }}" class="hover:text-[#F97316] transition-colors">Home</a>
+            <span class="text-gray-400">&gt;</span>
+            <a href="{{ route('cart.index') }}" class="hover:text-[#F97316] transition-colors">Cart</a>
+            <span class="text-gray-400">&gt;</span>
+            <a href="{{ route('checkout.index', ['keep' => 1]) }}" class="hover:text-[#F97316] transition-colors">Checkout</a>
+            <span class="text-gray-400">&gt;</span>
+            <span class="text-[#F97316] font-bold">Payment</span>
+        </nav>
 
-    <!-- Page Title -->
-    <div class="mb-8 border-b border-gray-200 pb-4 flex items-center gap-4">
         <button type="button" onclick="history.back()"
-                class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-gray-50 border border-gray-200 hover:border-gray-300 text-gray-700 text-xs font-bold rounded-xl transition-colors shadow-xs shrink-0 cursor-pointer">
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-gray-50 border border-gray-200 hover:border-gray-300 text-gray-700 text-xs font-bold rounded-xl transition-colors shadow-2xs cursor-pointer">
             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
             </svg>
             Kembali
         </button>
-        <div>
-            <h1 class="text-2xl sm:text-3xl font-black text-[#111111] tracking-tight">Payment</h1>
-            <p class="text-xs text-gray-600 mt-1 font-medium">Complete your payment to place your Build n Fix order.</p>
-        </div>
+    </div>
+
+    <!-- Page Title -->
+    <div class="mb-8 border-b border-gray-200 pb-4">
+        <h1 class="text-2xl sm:text-3xl font-black text-[#111111] tracking-tight">Payment</h1>
+        <p class="text-xs text-gray-600 mt-1 font-medium">Complete your payment to place your Build n Fix order.</p>
     </div>
 
     <!-- PAYMENT FAILURE ALERT -->

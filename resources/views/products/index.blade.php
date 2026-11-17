@@ -3,12 +3,22 @@
 @section('content')
 <div class="container mx-auto px-4 lg:px-8 py-8" x-data="{ showAllBrands: false }">
     
-    <!-- 1. BREADCRUMB -->
-    <nav class="flex items-center gap-2 text-xs font-semibold text-gray-500 mb-6">
-        <a href="{{ route('home') }}" class="hover:text-[#F97316] transition-colors">Home</a>
-        <span class="text-gray-400">&gt;</span>
-        <span class="text-[#F97316] font-bold">Produk</span>
-    </nav>
+    <!-- 1. BREADCRUMB & BACK BUTTON -->
+    <div class="flex items-center justify-between gap-4 mb-6 flex-wrap">
+        <nav class="flex items-center gap-2 text-xs font-semibold text-gray-500">
+            <a href="{{ route('home') }}" class="hover:text-[#F97316] transition-colors">Home</a>
+            <span class="text-gray-400">&gt;</span>
+            <span class="text-[#F97316] font-bold">Produk</span>
+        </nav>
+
+        <button type="button" onclick="history.back()"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-gray-50 border border-gray-200 hover:border-gray-300 text-gray-700 text-xs font-bold rounded-xl transition-colors shadow-2xs cursor-pointer">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
+            </svg>
+            Kembali
+        </button>
+    </div>
 
     <!-- FLASH MESSAGES -->
     @if(session('success'))
