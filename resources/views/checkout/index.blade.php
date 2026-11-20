@@ -1,13 +1,50 @@
 @extends('layouts.app')
 
 @section('content')
+@php
+    $initialItemFulfillments = [];
+    $itemBranches = [];
+    $oldItemFulfillments = (array) old('item_fulfillments', []);
+
+    foreach ($checkoutData['cart']['items'] ?? [] as $item) {
+        $itemId = (int) $item['id'];
+        $initialItemFulfillments[$itemId] = strtolower((string) ($oldItemFulfillments[$itemId] ?? $item['fulfillment_method'] ?? 'pickup')) === 'delivery'
+            ? 'delivery'
+            : 'pickup';
+        $itemBranches[$itemId] = (int) $item['branch_id'];
+    }
+@endphp
 <div class="container mx-auto px-4 lg:px-8 py-8" x-data="{
-    fulfillmentMethod: '{{ old('fulfillment_method', $checkoutData['fulfillment_method']) }}',
+    itemFulfillments: @js($initialItemFulfillments),
+    itemBranches: @js($itemBranches),
     branchCount: {{ (int) ($checkoutData['branch_count'] ?? 1) }},
     deliveryFeePerBranch: {{ (int) ($checkoutData['delivery_fee_per_branch'] ?? 15000) }},
     subtotal: {{ (int) $checkoutData['subtotal'] }},
+    get hasPickup() {
+        return Object.values(this.itemFulfillments).includes('pickup');
+    },
+    get hasDelivery() {
+        return Object.values(this.itemFulfillments).includes('delivery');
+    },
+    get deliveryBranchCount() {
+        const branches = new Set();
+        for (const [itemId, method] of Object.entries(this.itemFulfillments)) {
+            if (method === 'delivery' && this.itemBranches[itemId]) {
+                branches.add(this.itemBranches[itemId]);
+            }
+        }
+        return branches.size;
+    },
+    branchHasMethod(branchId, targetMethod) {
+        for (const [itemId, method] of Object.entries(this.itemFulfillments)) {
+            if (Number(this.itemBranches[itemId]) === Number(branchId) && method === targetMethod) {
+                return true;
+            }
+        }
+        return false;
+    },
     get calculatedDeliveryFee() {
-        return this.fulfillmentMethod === 'pickup' ? 0 : (this.deliveryFeePerBranch * this.branchCount);
+        return this.deliveryBranchCount * this.deliveryFeePerBranch;
     },
     get total() {
         return this.subtotal + this.calculatedDeliveryFee;
@@ -159,58 +196,90 @@
                     @endif
                 </div>
 
-                <!-- 3. FULFILLMENT METHOD -->
+                <!-- 3. FULFILLMENT METHOD (PER ITEM / BRANCH) -->
                 <div class="bg-white rounded-3xl p-6 shadow-xs border border-gray-200/80 space-y-4">
-                    <div class="flex items-center gap-2.5 border-b border-gray-100 pb-3">
-                        <span class="w-8 h-8 rounded-xl bg-orange-50 text-[#F97316] flex items-center justify-center font-extrabold text-sm border border-orange-100">3</span>
-                        <h2 class="text-base font-extrabold text-[#111111]">Fulfillment Method</h2>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <!-- Option 1: Pickup -->
-                        <label class="cursor-pointer relative p-4 rounded-2xl border-2 transition-all flex flex-col justify-between space-y-3"
-                               :class="fulfillmentMethod === 'pickup' ? 'border-[#F97316] bg-orange-50/20 shadow-xs' : 'border-gray-200 hover:border-gray-300 bg-white'">
-                            <div class="flex items-start justify-between">
-                                <div class="flex items-center gap-3">
-                                    <input type="radio" name="fulfillment_method" value="pickup" x-model="fulfillmentMethod" class="w-4 h-4 text-[#F97316] focus:ring-[#F97316]">
-                                    <div>
-                                        <span class="font-black text-sm text-[#111111] block">Pickup di Toko</span>
-                                        <span class="text-xs text-gray-500 font-medium">Ambil langsung di cabang</span>
-                                    </div>
-                                </div>
-                                <span class="text-xs font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Gratis (Rp0)</span>
-                            </div>
-                            <p class="text-[11px] text-gray-500 italic font-medium pl-7">
-                                Pick up your order directly from the selected branch.
-                            </p>
-                        </label>
-
-                        <!-- Option 2: Delivery -->
-                        <label class="cursor-pointer relative p-4 rounded-2xl border-2 transition-all flex flex-col justify-between space-y-3"
-                               :class="fulfillmentMethod === 'delivery' ? 'border-[#F97316] bg-orange-50/20 shadow-xs' : 'border-gray-200 hover:border-gray-300 bg-white'">
-                            <div class="flex items-start justify-between">
-                                <div class="flex items-center gap-3">
-                                    <input type="radio" name="fulfillment_method" value="delivery" x-model="fulfillmentMethod" class="w-4 h-4 text-[#F97316] focus:ring-[#F97316]">
-                                    <div>
-                                        <span class="font-black text-sm text-[#111111] block">Delivery</span>
-                                        <span class="text-xs text-gray-500 font-medium">Diantar ke alamat Anda</span>
-                                    </div>
-                                </div>
-                                <span class="text-xs font-black text-[#F97316] bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">
-                                    Rp{{ number_format($checkoutData['delivery_fee_per_branch'], 0, ',', '.') }}{{ ($checkoutData['branch_count'] ?? 1) > 1 ? '/cabang' : '' }}
-                                </span>
-                            </div>
-                            <p class="text-[11px] text-gray-500 italic font-medium pl-7">
-                                Fast delivery directly to your building site or house.
-                            </p>
-                        </label>
-                    </div>
-
-                    <!-- Pickup Location details when Pickup is selected -->
-                    <div x-show="fulfillmentMethod === 'pickup'" x-transition class="mt-4 p-4 rounded-2xl bg-gray-50 border border-gray-200 text-xs space-y-2">
-                        <div class="font-extrabold text-[#111111]">Pickup Location:</div>
-                        @foreach($checkoutData['branches'] as $branchGroup)
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-8 h-8 rounded-xl bg-orange-50 text-[#F97316] flex items-center justify-center font-extrabold text-sm border border-orange-100">3</span>
                             <div>
+                                <h2 class="text-base font-extrabold text-[#111111]">Fulfillment Method</h2>
+                                <p class="text-[11px] text-gray-500 font-medium">Metode pesanan otomatis mengikuti pilihan Anda di keranjang dan dapat disesuaikan per item.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        @foreach($checkoutData['cart']['items'] as $item)
+                            <div class="p-4 rounded-2xl border border-gray-200/80 bg-gray-50/50 space-y-3">
+                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                    <div class="flex items-center gap-2.5 min-w-0">
+                                        <img src="{{ $item['product']['image'] }}"
+                                             alt="{{ $item['product']['name'] }}"
+                                             class="w-10 h-10 object-cover rounded-xl border border-gray-200 bg-white shrink-0">
+                                        <div class="min-w-0">
+                                            <div class="flex items-center gap-2 flex-wrap">
+                                                <span class="text-xs font-black text-[#111111] truncate">{{ $item['product']['name'] }}</span>
+                                                <span class="px-2 py-0.5 rounded-md bg-orange-50 text-[#F97316] border border-orange-200 text-[10px] font-extrabold shrink-0">
+                                                    Cabang {{ $item['branch_name'] }}
+                                                </span>
+                                            </div>
+                                            <span class="text-[11px] text-gray-500 font-medium">
+                                                Qty: {{ $item['quantity'] }} {{ $item['product']['unit'] }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <!-- Option 1: Pickup -->
+                                    <label class="cursor-pointer relative p-3.5 rounded-2xl border-2 transition-all flex flex-col justify-between space-y-2"
+                                           :class="itemFulfillments[{{ $item['id'] }}] === 'pickup' ? 'border-[#F97316] bg-orange-50/30 shadow-xs' : 'border-gray-200 hover:border-gray-300 bg-white'">
+                                        <div class="flex items-start justify-between gap-2">
+                                            <div class="flex items-center gap-2.5">
+                                                <input type="radio"
+                                                       name="item_fulfillments[{{ $item['id'] }}]"
+                                                       value="pickup"
+                                                       x-model="itemFulfillments[{{ $item['id'] }}]"
+                                                       class="w-4 h-4 text-[#F97316] focus:ring-[#F97316]">
+                                                <div>
+                                                    <span class="font-black text-xs text-[#111111] block">🏪 Pickup di Toko</span>
+                                                    <span class="text-[11px] text-gray-500 font-medium">Ambil di Cabang {{ $item['branch_name'] }}</span>
+                                                </div>
+                                            </div>
+                                            <span class="text-[10px] font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">Gratis (Rp0)</span>
+                                        </div>
+                                    </label>
+
+                                    <!-- Option 2: Delivery -->
+                                    <label class="cursor-pointer relative p-3.5 rounded-2xl border-2 transition-all flex flex-col justify-between space-y-2"
+                                           :class="itemFulfillments[{{ $item['id'] }}] === 'delivery' ? 'border-[#F97316] bg-orange-50/30 shadow-xs' : 'border-gray-200 hover:border-gray-300 bg-white'">
+                                        <div class="flex items-start justify-between gap-2">
+                                            <div class="flex items-center gap-2.5">
+                                                <input type="radio"
+                                                       name="item_fulfillments[{{ $item['id'] }}]"
+                                                       value="delivery"
+                                                       x-model="itemFulfillments[{{ $item['id'] }}]"
+                                                       class="w-4 h-4 text-[#F97316] focus:ring-[#F97316]">
+                                                <div>
+                                                    <span class="font-black text-xs text-[#111111] block">🚚 Delivery</span>
+                                                    <span class="text-[11px] text-gray-500 font-medium">Diantar dari Cabang {{ $item['branch_name'] }}</span>
+                                                </div>
+                                            </div>
+                                            <span class="text-[10px] font-black text-[#F97316] bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full shrink-0">
+                                                Rp{{ number_format($checkoutData['delivery_fee_per_branch'], 0, ',', '.') }}/cabang
+                                            </span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    <!-- Pickup Location details when any item has Pickup selected -->
+                    <div x-show="hasPickup" x-transition class="mt-4 p-4 rounded-2xl bg-gray-50 border border-gray-200 text-xs space-y-2">
+                        <div class="font-extrabold text-[#111111]">Pickup Location (Untuk Item Pickup di Toko):</div>
+                        @foreach($checkoutData['branches'] as $branchGroup)
+                            <div x-show="branchHasMethod({{ $branchGroup['id'] }}, 'pickup')">
                                 <div class="font-bold text-[#F97316]">Build n Fix {{ $branchGroup['name'] }}</div>
                                 <div class="text-gray-600 font-medium">{{ $branchGroup['address'] ?: ($branchGroup['short_address'] ?: 'Kota '.$branchGroup['city']) }}</div>
                             </div>
@@ -218,11 +287,24 @@
                     </div>
                 </div>
 
-                <!-- 4. DELIVERY ADDRESS (IF DELIVERY) -->
-                <div x-show="fulfillmentMethod === 'delivery'" x-transition class="bg-white rounded-3xl p-6 shadow-xs border border-gray-200/80 space-y-4">
-                    <div class="flex items-center gap-2.5 border-b border-gray-100 pb-3">
-                        <span class="w-8 h-8 rounded-xl bg-orange-50 text-[#F97316] flex items-center justify-center font-extrabold text-sm border border-orange-100">4</span>
-                        <h2 class="text-base font-extrabold text-[#111111]">Delivery Address</h2>
+                <!-- 4. DELIVERY ADDRESS (IF ANY ITEM USES DELIVERY) -->
+                <div x-show="hasDelivery" x-transition class="bg-white rounded-3xl p-6 shadow-xs border border-gray-200/80 space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-8 h-8 rounded-xl bg-orange-50 text-[#F97316] flex items-center justify-center font-extrabold text-sm border border-orange-100">4</span>
+                            <div>
+                                <h2 class="text-base font-extrabold text-[#111111]">Delivery Address</h2>
+                                <p class="text-[11px] text-gray-500 font-medium">Alamat tujuan untuk item yang menggunakan metode Delivery.</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap gap-1.5">
+                            @foreach($checkoutData['branches'] as $branchGroup)
+                                <span x-show="branchHasMethod({{ $branchGroup['id'] }}, 'delivery')"
+                                      class="px-2.5 py-1 rounded-full bg-orange-50 text-[#F97316] border border-orange-200 text-[10px] font-extrabold">
+                                    🚚 Delivery Cabang {{ $branchGroup['name'] }}
+                                </span>
+                            @endforeach
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -231,7 +313,7 @@
                             label="Recipient Name"
                             placeholder="John Doe"
                             :value="old('recipient_name', $checkoutData['delivery_address']['recipient_name'] ?? $checkoutData['customer']['name'])"
-                            ::required="fulfillmentMethod === 'delivery'"
+                            ::required="hasDelivery"
                         />
 
                         <x-form-input
@@ -239,7 +321,7 @@
                             label="Phone Number"
                             placeholder="081234567890"
                             :value="old('phone', $checkoutData['delivery_address']['phone'] ?? $checkoutData['customer']['phone'])"
-                            ::required="fulfillmentMethod === 'delivery'"
+                            ::required="hasDelivery"
                         />
 
                         <div class="sm:col-span-2">
@@ -248,7 +330,7 @@
                                 label="Street Address"
                                 placeholder="Jl. Gajah Mada No. 123"
                                 :value="old('address', $checkoutData['delivery_address']['address'] ?? '')"
-                                ::required="fulfillmentMethod === 'delivery'"
+                                ::required="hasDelivery"
                             />
                         </div>
 
@@ -257,7 +339,7 @@
                             label="City"
                             placeholder="Pontianak"
                             :value="old('city', $checkoutData['delivery_address']['city'] ?? 'Pontianak')"
-                            ::required="fulfillmentMethod === 'delivery'"
+                            ::required="hasDelivery"
                         />
 
                         <x-form-input
@@ -291,11 +373,15 @@
                                      alt="{{ $item['product']['name'] }}"
                                      class="w-14 h-14 object-cover rounded-xl border border-gray-200 shrink-0">
 
-                                <div class="flex-grow min-w-0">
-                                    <div class="flex items-center gap-2">
+                                <div class="grow min-w-0">
+                                    <div class="flex items-center gap-2 flex-wrap">
                                         <h4 class="text-xs font-black text-[#111111] truncate">{{ $item['product']['name'] }}</h4>
                                         <span class="px-2 py-0.5 rounded-md bg-orange-50 text-[#F97316] text-[10px] font-bold shrink-0">
                                             {{ $item['branch_name'] }}
+                                        </span>
+                                        <span class="px-2 py-0.5 rounded-md border text-[10px] font-bold shrink-0"
+                                              :class="itemFulfillments[{{ $item['id'] }}] === 'delivery' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'"
+                                              x-text="itemFulfillments[{{ $item['id'] }}] === 'delivery' ? '🚚 Delivery' : '🏪 Pickup di Toko'">
                                         </span>
                                     </div>
                                     <div class="text-[11px] text-gray-500 mt-0.5 flex items-center gap-2">
@@ -345,11 +431,14 @@
 
                         <div class="flex justify-between items-center text-gray-600 font-medium">
                             <span>Delivery Fee</span>
-                            <template x-if="fulfillmentMethod === 'pickup'">
+                            <template x-if="!hasDelivery">
                                 <span class="font-bold text-emerald-600">Rp0 (Pickup)</span>
                             </template>
-                            <template x-if="fulfillmentMethod === 'delivery'">
-                                <span class="font-bold text-[#F97316]" x-text="formatRupiah(calculatedDeliveryFee)"></span>
+                            <template x-if="hasDelivery">
+                                <div class="text-right">
+                                    <span class="font-bold text-[#F97316] block" x-text="formatRupiah(calculatedDeliveryFee)"></span>
+                                    <span x-show="hasPickup" class="text-[10px] text-gray-400 font-semibold block" x-text="deliveryBranchCount + ' cabang Delivery, lainnya Pickup (Rp0)'"></span>
+                                </div>
                             </template>
                         </div>
 

@@ -347,10 +347,6 @@ class ProductController extends Controller
                 $updateData['sku'] = trim($validated['sku']);
             }
 
-            if (($validated['image'] ?? '') !== '') {
-                $updateData['image'] = $validated['image'];
-            }
-
             $product->update($updateData);
 
             $submittedPrices = (array) $request->input('prices', []);

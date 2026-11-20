@@ -23,14 +23,12 @@ class DatabaseSeeder extends Seeder
             SupplierSeeder::class,
         ]);
 
-        // User::factory(10)->create();
-
         $accounts = [
-            ['name' => 'Customer', 'email' => 'customer@buildnfix.test', 'role' => 'customer', 'branch' => null],
-            ['name' => 'Admin Serdam', 'email' => 'admin.serdam@buildnfix.test', 'role' => 'admin', 'branch' => 'Serdam'],
-            ['name' => 'Admin Gajahmada', 'email' => 'admin.gajahmada@buildnfix.test', 'role' => 'admin', 'branch' => 'Gajahmada'],
-            ['name' => 'Admin Kota Baru', 'email' => 'admin.kotabaru@buildnfix.test', 'role' => 'admin', 'branch' => 'Kota Baru'],
-            ['name' => 'Owner', 'email' => 'owner@buildnfix.test', 'role' => 'owner', 'branch' => 'all'],
+            ['name' => 'Customer', 'email' => 'customer@gmail.com', 'role' => 'customer', 'branch' => null],
+            ['name' => 'Admin Serdam', 'email' => 'admin.serdam@gmail.com', 'role' => 'admin', 'branch' => 'Serdam'],
+            ['name' => 'Admin Gajahmada', 'email' => 'admin.gajahmada@gmail.com', 'role' => 'admin', 'branch' => 'Gajahmada'],
+            ['name' => 'Admin Kota Baru', 'email' => 'admin.kotabaru@gmail.com', 'role' => 'admin', 'branch' => 'Kota Baru'],
+            ['name' => 'Owner', 'email' => 'owner@gmail.com', 'role' => 'owner', 'branch' => 'all'],
         ];
 
         foreach ($accounts as $account) {

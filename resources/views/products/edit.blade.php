@@ -123,11 +123,30 @@
                 </div>
             </div>
 
-            <!-- Image URL -->
+            <!-- Product Image (Default Folder - Read Only) -->
             <div>
-                <label class="block text-xs font-bold text-gray-700 uppercase mb-2">URL Gambar Produk</label>
-                <input type="url" name="image" value="{{ old('image', $product['image'] ?? '') }}" 
-                       class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F97316]">
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-2">Foto Produk (Default Folder)</label>
+                @php
+                    $rawImg = $product['image'] ?? '';
+                    $previewUrl = $rawImg !== ''
+                        ? (\Illuminate\Support\Str::startsWith($rawImg, ['http://', 'https://']) ? $rawImg : asset($rawImg))
+                        : null;
+                @endphp
+                <div class="flex items-center gap-4 p-3.5 bg-gray-100/80 border border-gray-200 rounded-2xl">
+                    @if($previewUrl)
+                        <img src="{{ $previewUrl }}" alt="{{ $product['name'] }}" class="w-14 h-14 rounded-xl object-cover border border-gray-200 bg-white shrink-0">
+                    @endif
+                    <div class="min-w-0 flex-1">
+                        <input type="text"
+                               value="{{ $product['image'] ?? 'Default Folder' }}"
+                               readonly
+                               disabled
+                               class="w-full px-3.5 py-2.5 bg-gray-200/70 border border-gray-300 rounded-xl text-xs font-mono font-semibold text-gray-500 cursor-not-allowed select-none">
+                        <p class="text-[11px] text-gray-500 font-medium mt-1">
+                            Foto produk menggunakan aset default dari folder proyek dan dikunci (tidak dapat diubah).
+                        </p>
+                    </div>
+                </div>
             </div>
 
             <!-- Description -->

@@ -120,12 +120,11 @@
                 </div>
             </div>
 
-            <!-- Image URL -->
+            <!-- Image (Default Folder) -->
             <div>
-                <label class="block text-xs font-bold text-gray-700 uppercase mb-2">URL Gambar Produk</label>
-                <input type="url" name="image" value="{{ old('image') }}" 
-                       class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F97316]"
-                       placeholder="https://images.unsplash.com/... (opsional, ada gambar default)">
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-2">Foto Produk (Default Folder)</label>
+                <input type="text" value="Menggunakan foto default otomatis dari folder produk" readonly disabled
+                       class="w-full px-4 py-3 bg-gray-200/70 border border-gray-300 rounded-2xl text-xs font-semibold text-gray-500 cursor-not-allowed select-none">
             </div>
 
             <!-- Description -->

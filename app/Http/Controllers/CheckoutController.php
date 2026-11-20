@@ -84,9 +84,42 @@ class CheckoutController extends Controller
         }
 
         $validated = $request->validated();
-        $fulfillmentMethod = $validated['fulfillment_method'];
+        $itemFulfillments = (array) ($validated['item_fulfillments'] ?? []);
+        $fallbackMethod = isset($validated['fulfillment_method']) && in_array($validated['fulfillment_method'], ['pickup', 'delivery'], true)
+            ? $validated['fulfillment_method']
+            : null;
 
-        $deliveryAddress = $fulfillmentMethod === 'delivery' ? [
+        $hasSelectedFilter = Session::has(self::SELECTED_ITEMS_KEY);
+        $selectedIds = array_map('intval', (array) Session::get(self::SELECTED_ITEMS_KEY, []));
+
+        $cartItems = CartItem::query()
+            ->forUser((int) $user->id)
+            ->when($hasSelectedFilter, fn ($q) => $q->whereIn('id', $selectedIds))
+            ->get();
+
+        $resolvedMethods = [];
+        foreach ($cartItems as $cartItem) {
+            $chosenMethod = $itemFulfillments[$cartItem->id]
+                ?? $itemFulfillments[(string) $cartItem->id]
+                ?? $fallbackMethod
+                ?? ($cartItem->fulfillment_method ?: 'pickup');
+
+            $chosenMethod = strtolower((string) $chosenMethod) === 'delivery' ? 'delivery' : 'pickup';
+
+            if ($cartItem->fulfillment_method !== $chosenMethod) {
+                $cartItem->update(['fulfillment_method' => $chosenMethod]);
+            }
+
+            $resolvedMethods[$cartItem->id] = $chosenMethod;
+        }
+
+        $hasDelivery = in_array('delivery', $resolvedMethods, true);
+        $uniqueMethods = array_values(array_unique(array_values($resolvedMethods)));
+        $fulfillmentMethod = count($uniqueMethods) === 1
+            ? $uniqueMethods[0]
+            : ($hasDelivery ? 'mixed' : 'pickup');
+
+        $deliveryAddress = $hasDelivery ? [
             'recipient_name' => $validated['recipient_name'] ?? $validated['customer_name'],
             'phone' => $validated['phone'] ?? $validated['customer_phone'],
             'address' => $validated['address'] ?? '',
@@ -97,6 +130,7 @@ class CheckoutController extends Controller
 
         Session::put(self::SESSION_KEY, [
             'fulfillment_method' => $fulfillmentMethod,
+            'item_fulfillments' => $resolvedMethods,
             'customer_name' => $validated['customer_name'],
             'customer_email' => $validated['customer_email'],
             'customer_phone' => $validated['customer_phone'],
@@ -207,12 +241,23 @@ class CheckoutController extends Controller
                 }
 
                 $orders = [];
-                $deliveryFeePerBranch = $fulfillmentMethod === 'delivery' ? self::DELIVERY_FEE_PER_BRANCH : 0;
-                $orderStatus = $fulfillmentMethod === 'pickup' ? 'ready_to_pick_up' : 'proses';
+                $groupedCartItems = $cartItems->groupBy(
+                    fn (CartItem $item): string => $item->branch_id.'_'.(strtolower((string) ($item->fulfillment_method ?: 'pickup')) === 'delivery' ? 'delivery' : 'pickup')
+                );
 
-                foreach ($cartItems->groupBy('branch_id') as $branchId => $branchItems) {
+                foreach ($groupedCartItems as $branchItems) {
+                    /** @var CartItem $firstItem */
+                    $firstItem = $branchItems->first();
                     /** @var Branch $branch */
-                    $branch = $branchItems->first()->branch;
+                    $branch = $firstItem->branch;
+                    $branchId = $branch->id;
+                    $itemFulfillment = strtolower((string) ($firstItem->fulfillment_method ?: 'pickup')) === 'delivery'
+                        ? 'delivery'
+                        : 'pickup';
+                    $isDelivery = $itemFulfillment === 'delivery';
+                    $deliveryFeeForOrder = $isDelivery ? self::DELIVERY_FEE_PER_BRANCH : 0;
+                    $orderStatus = $isDelivery ? 'proses' : 'ready_to_pick_up';
+
                     $branchSubtotal = 0;
                     $linePayloads = [];
 
@@ -232,26 +277,26 @@ class CheckoutController extends Controller
                         ];
                     }
 
-                    $branchTotal = $branchSubtotal + $deliveryFeePerBranch;
+                    $branchTotal = $branchSubtotal + $deliveryFeeForOrder;
 
                     $order = Order::create([
                         'order_number' => 'TMP-'.Str::uuid()->toString(),
                         'user_id' => $user->id,
                         'branch_id' => $branch->id,
-                        'fulfillment_method' => $fulfillmentMethod,
+                        'fulfillment_method' => $itemFulfillment,
                         'order_status' => $orderStatus,
                         'payment_status' => 'paid',
                         'customer_name' => $customer['name'],
                         'customer_email' => $customer['email'],
                         'customer_phone' => $customer['phone'],
-                        'recipient_name' => $fulfillmentMethod === 'delivery' ? ($deliveryAddress['recipient_name'] ?? $customer['name']) : null,
-                        'recipient_phone' => $fulfillmentMethod === 'delivery' ? ($deliveryAddress['phone'] ?? $customer['phone']) : null,
-                        'delivery_address' => $fulfillmentMethod === 'delivery' ? ($deliveryAddress['address'] ?? null) : null,
-                        'delivery_city' => $fulfillmentMethod === 'delivery' ? ($deliveryAddress['city'] ?? null) : null,
-                        'delivery_postal_code' => $fulfillmentMethod === 'delivery' ? ($deliveryAddress['postal_code'] ?? null) : null,
-                        'delivery_notes' => $fulfillmentMethod === 'delivery' ? ($deliveryAddress['notes'] ?? null) : null,
+                        'recipient_name' => $isDelivery ? ($deliveryAddress['recipient_name'] ?? $customer['name']) : null,
+                        'recipient_phone' => $isDelivery ? ($deliveryAddress['phone'] ?? $customer['phone']) : null,
+                        'delivery_address' => $isDelivery ? ($deliveryAddress['address'] ?? null) : null,
+                        'delivery_city' => $isDelivery ? ($deliveryAddress['city'] ?? null) : null,
+                        'delivery_postal_code' => $isDelivery ? ($deliveryAddress['postal_code'] ?? null) : null,
+                        'delivery_notes' => $isDelivery ? ($deliveryAddress['notes'] ?? null) : null,
                         'subtotal' => $branchSubtotal,
-                        'delivery_fee' => $deliveryFeePerBranch,
+                        'delivery_fee' => $deliveryFeeForOrder,
                         'total' => $branchTotal,
                     ]);
 
@@ -294,7 +339,7 @@ class CheckoutController extends Controller
                             'previous_stock' => $prevStock,
                             'current_stock' => $nextStock,
                             'source' => 'Penjualan / Order #'.$orderNumber,
-                            'notes' => 'Checkout '.$fulfillmentMethod.' ('.$paymentMethod.')',
+                            'notes' => 'Checkout '.$itemFulfillment.' ('.$paymentMethod.')',
                         ]);
 
                         $movement->update([
@@ -372,6 +417,8 @@ class CheckoutController extends Controller
         $hasOutOfStockItems = false;
         $hasStockErrors = false;
         $fulfillmentChoices = [];
+        $deliveryBranchIds = [];
+        $pickupBranchIds = [];
 
         foreach ($records as $record) {
             if (! $record->product || ! $record->branch) {
@@ -398,7 +445,16 @@ class CheckoutController extends Controller
                 $hasStockErrors = true;
             }
 
-            $fulfillmentChoices[] = $record->fulfillment_method ?? 'pickup';
+            $itemFulfillment = strtolower((string) ($record->fulfillment_method ?? 'pickup')) === 'delivery'
+                ? 'delivery'
+                : 'pickup';
+            $fulfillmentChoices[] = $itemFulfillment;
+
+            if ($itemFulfillment === 'delivery') {
+                $deliveryBranchIds[$record->branch_id] = true;
+            } else {
+                $pickupBranchIds[$record->branch_id] = true;
+            }
 
             $rawImg = (string) ($record->product->image ?? '');
             $resolvedImg = $rawImg === ''
@@ -410,6 +466,7 @@ class CheckoutController extends Controller
                 'product_id' => $record->product_id,
                 'branch_id' => $record->branch_id,
                 'branch_name' => $record->branch->name,
+                'fulfillment_method' => $itemFulfillment,
                 'product' => [
                     'id' => $record->product->id,
                     'sku' => $record->product->sku,
@@ -458,10 +515,13 @@ class CheckoutController extends Controller
         ];
 
         $savedCheckout = Session::get(self::SESSION_KEY, []);
-        $defaultFulfillment = count(array_unique($fulfillmentChoices)) === 1
-            ? $fulfillmentChoices[0]
-            : 'pickup';
-        $fulfillmentMethod = strtolower((string) ($savedCheckout['fulfillment_method'] ?? $defaultFulfillment));
+        $uniqueMethods = array_values(array_unique($fulfillmentChoices));
+        $fulfillmentMethod = count($uniqueMethods) === 1
+            ? $uniqueMethods[0]
+            : (count($uniqueMethods) > 1 ? 'mixed' : 'pickup');
+
+        $deliveryBranchCount = count($deliveryBranchIds);
+        $pickupBranchCount = count($pickupBranchIds);
 
         $customer = [
             'name' => $savedCheckout['customer_name'] ?? $user->name,
@@ -479,9 +539,7 @@ class CheckoutController extends Controller
         ];
 
         $deliveryFeePerBranch = self::DELIVERY_FEE_PER_BRANCH;
-        $deliveryFee = $fulfillmentMethod === 'delivery' && $branchCount > 0
-            ? $deliveryFeePerBranch * $branchCount
-            : 0;
+        $deliveryFee = $deliveryBranchCount * $deliveryFeePerBranch;
         $total = $subtotal + $deliveryFee;
 
         $errors = [];
@@ -507,6 +565,10 @@ class CheckoutController extends Controller
             'branches' => $branches,
             'branch_count' => $branchCount,
             'fulfillment_method' => $fulfillmentMethod,
+            'has_delivery' => $deliveryBranchCount > 0,
+            'has_pickup' => $pickupBranchCount > 0,
+            'delivery_branch_count' => $deliveryBranchCount,
+            'pickup_branch_count' => $pickupBranchCount,
             'delivery_address' => $deliveryAddress,
             'subtotal' => $subtotal,
             'delivery_fee' => $deliveryFee,

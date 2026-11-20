@@ -168,10 +168,16 @@
                                 {{ implode(', ', array_map(fn (array $b): string => 'Cabang '.$b['name'], $checkoutData['branches'] ?? [])) }}
                             </span>
                         </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-500 font-medium">Fulfillment:</span>
-                            <span class="font-extrabold text-[#F97316]">
-                                {{ strtolower($checkoutData['fulfillment_method']) === 'pickup' ? 'Pickup di Toko' : 'Delivery' }}
+                        <div class="flex justify-between items-center gap-2">
+                            <span class="text-gray-500 font-medium shrink-0">Fulfillment:</span>
+                            <span class="font-extrabold text-[#F97316] text-right">
+                                @if(strtolower($checkoutData['fulfillment_method']) === 'mixed')
+                                    Pickup & Delivery (Per Item/Cabang)
+                                @elseif(strtolower($checkoutData['fulfillment_method']) === 'pickup')
+                                    Pickup di Toko
+                                @else
+                                    Delivery
+                                @endif
                             </span>
                         </div>
                     </div>
@@ -188,7 +194,12 @@
                                              class="w-8 h-8 rounded-lg object-cover border border-gray-200 shrink-0">
                                         <div class="min-w-0">
                                             <span class="font-extrabold text-[#111111] block truncate text-[11px]">{{ $item['product']['name'] }}</span>
-                                            <span class="text-[10px] text-gray-400">{{ $item['branch_name'] }} • x{{ $item['quantity'] }}</span>
+                                            <span class="text-[10px] text-gray-500 flex items-center gap-1.5 flex-wrap">
+                                                <span>{{ $item['branch_name'] }} • x{{ $item['quantity'] }}</span>
+                                                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold {{ ($item['fulfillment_method'] ?? 'pickup') === 'delivery' ? 'bg-orange-50 text-[#F97316]' : 'bg-emerald-50 text-emerald-700' }}">
+                                                    {{ ($item['fulfillment_method'] ?? 'pickup') === 'delivery' ? '🚚 Delivery' : '🏪 Pickup' }}
+                                                </span>
+                                            </span>
                                         </div>
                                     </div>
                                     <span class="font-bold text-gray-800 text-[11px] shrink-0">
