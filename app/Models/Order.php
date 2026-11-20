@@ -32,10 +32,21 @@ use Illuminate\Support\Str;
     'delivery_notes',
     'subtotal',
     'delivery_fee',
+    'discount',
+    'voucher_code',
     'total',
 ])]
 class Order extends Model
 {
+    public const STATUS_MENUNGGU_DIPROSES = 'menunggu_diproses';
+    public const STATUS_SEDANG_DISIAPKAN = 'sedang_disiapkan';
+    public const STATUS_SEDANG_DIKEMAS = 'sedang_dikemas';
+    public const STATUS_SIAP_DIKIRIM = 'siap_dikirim';
+    public const STATUS_SEDANG_DIANTAR = 'sedang_diantar';
+    public const STATUS_SIAP_DIAMBIL = 'siap_diambil';
+    public const STATUS_PESANAN_SELESAI = 'pesanan_selesai';
+    public const STATUS_CANCELLED = 'cancelled';
+
     /**
      * Get the attributes that should be cast.
      *
@@ -46,6 +57,7 @@ class Order extends Model
         return [
             'subtotal' => 'integer',
             'delivery_fee' => 'integer',
+            'discount' => 'integer',
             'total' => 'integer',
         ];
     }
@@ -101,21 +113,103 @@ class Order extends Model
     }
 
     /**
+     * Audit log history of order status changes.
+     *
+     * @return HasMany<OrderStatusHistory, $this>
+     */
+    public function statusHistories(): HasMany
+    {
+        return $this->hasMany(OrderStatusHistory::class)->orderBy('created_at', 'asc')->orderBy('id', 'asc');
+    }
+
+    /**
+     * Map any legacy or raw status code to its canonical normalized key.
+     */
+    public static function normalizeStatus(?string $status): string
+    {
+        return match (strtolower(trim((string) $status))) {
+            'paid' => self::STATUS_MENUNGGU_DIPROSES,
+            'proses' => self::STATUS_SEDANG_DISIAPKAN,
+            'ready_to_pick_up', 'ready_to_pickup' => self::STATUS_SIAP_DIAMBIL,
+            'on_delivery' => self::STATUS_SEDANG_DIANTAR,
+            'order_completed', 'completed' => self::STATUS_PESANAN_SELESAI,
+            default => strtolower(trim((string) $status)) ?: self::STATUS_MENUNGGU_DIPROSES,
+        };
+    }
+
+    /**
+     * Human-friendly label in Indonesian according to product specs.
+     */
+    public static function formatStatusLabel(?string $status): string
+    {
+        $normalized = self::normalizeStatus($status);
+
+        return match ($normalized) {
+            self::STATUS_MENUNGGU_DIPROSES => 'Menunggu Diproses',
+            self::STATUS_SEDANG_DISIAPKAN => 'Sedang Disiapkan',
+            self::STATUS_SEDANG_DIKEMAS => 'Sedang Dikemas',
+            self::STATUS_SIAP_DIKIRIM => 'Siap Dikirim',
+            self::STATUS_SEDANG_DIANTAR => 'Sedang Diantar',
+            self::STATUS_SIAP_DIAMBIL => 'Siap Diambil',
+            self::STATUS_PESANAN_SELESAI => 'Pesanan Selesai',
+            self::STATUS_CANCELLED => 'Dibatalkan',
+            default => ucfirst(str_replace('_', ' ', $normalized)),
+        };
+    }
+
+    /**
+     * Available status options for delivery fulfillment.
+     *
+     * @return array<string, string>
+     */
+    public static function deliveryStatuses(): array
+    {
+        return [
+            self::STATUS_MENUNGGU_DIPROSES => 'Menunggu Diproses',
+            self::STATUS_SEDANG_DISIAPKAN => 'Sedang Disiapkan',
+            self::STATUS_SEDANG_DIKEMAS => 'Sedang Dikemas',
+            self::STATUS_SIAP_DIKIRIM => 'Siap Dikirim',
+            self::STATUS_SEDANG_DIANTAR => 'Sedang Diantar',
+            self::STATUS_PESANAN_SELESAI => 'Pesanan Selesai',
+        ];
+    }
+
+    /**
+     * Available status options for pickup fulfillment.
+     *
+     * @return array<string, string>
+     */
+    public static function pickupStatuses(): array
+    {
+        return [
+            self::STATUS_MENUNGGU_DIPROSES => 'Menunggu Diproses',
+            self::STATUS_SEDANG_DISIAPKAN => 'Sedang Disiapkan',
+            self::STATUS_SEDANG_DIKEMAS => 'Sedang Dikemas',
+            self::STATUS_SIAP_DIAMBIL => 'Siap Diambil',
+            self::STATUS_PESANAN_SELESAI => 'Pesanan Selesai / Sudah Diambil',
+        ];
+    }
+
+    /**
+     * Get valid status options for this order's fulfillment method.
+     *
+     * @return array<string, string>
+     */
+    public function allowedStatuses(): array
+    {
+        return strtolower((string) $this->fulfillment_method) === 'delivery'
+            ? self::deliveryStatuses()
+            : self::pickupStatuses();
+    }
+
+    /**
      * Human-readable order status label.
      *
      * @return Attribute<string, never>
      */
     protected function statusLabel(): Attribute
     {
-        return Attribute::get(fn (): string => match (strtolower((string) $this->order_status)) {
-            'paid' => 'Paid',
-            'ready_to_pick_up' => 'Ready to Pick Up',
-            'proses' => 'Proses',
-            'on_delivery' => 'On Delivery',
-            'order_completed', 'completed' => 'Order Completed',
-            'cancelled' => 'Dibatalkan',
-            default => ucfirst(str_replace('_', ' ', (string) $this->order_status)),
-        });
+        return Attribute::get(fn (): string => self::formatStatusLabel($this->order_status));
     }
 
     /**
@@ -141,15 +235,20 @@ class Order extends Model
             $this->delivery_postal_code,
         ])));
 
+        $branchName = $this->branch?->name ?? 'Serdam';
+        $branchAddress = $this->branch?->address ?? $this->branch?->short_address ?? '';
+
         return [
             'id' => $this->id,
             'order_number' => $this->order_number,
             'user_id' => $this->user_id,
             'branch_id' => $this->branch_id,
-            'branch_name' => $this->branch?->name ?? 'Serdam',
-            'branch_address' => $this->branch?->address ?? $this->branch?->short_address ?? '',
+            'branch_name' => $branchName,
+            'branch_address' => $branchAddress,
+            'branch_city' => $this->branch?->city ?? 'Pontianak',
+            'branch_phone' => $this->branch?->phone ?? '0561-123456',
             'fulfillment_method' => $this->fulfillment_method,
-            'order_status' => $this->order_status,
+            'order_status' => self::normalizeStatus($this->order_status),
             'status_label' => $this->status_label,
             'payment_status' => $this->payment_status,
             'payment_badge_label' => $this->payment_badge_label,
@@ -161,13 +260,30 @@ class Order extends Model
             'recipient_name' => $this->recipient_name,
             'recipient_phone' => $this->recipient_phone,
             'delivery_address' => $fullAddress !== '' ? $fullAddress : null,
+            'delivery_city' => $this->delivery_city,
+            'delivery_postal_code' => $this->delivery_postal_code,
             'delivery_notes' => $this->delivery_notes,
             'subtotal' => $this->subtotal,
             'delivery_fee' => $this->delivery_fee,
+            'discount' => $this->discount ?? 0,
+            'voucher_code' => $this->voucher_code,
             'total' => $this->total,
             'created_at' => $this->created_at?->format('Y-m-d H:i:s') ?? '',
             'created_at_formatted' => $this->created_at?->format('d M Y, H:i') ?? '',
             'timeline' => $this->trackingTimeline(),
+            'allowed_statuses' => $this->allowedStatuses(),
+            'status_histories' => $this->statusHistories->map(fn (OrderStatusHistory $h): array => [
+                'id' => $h->id,
+                'status_from' => $h->status_from,
+                'status_from_label' => $h->status_from_label,
+                'status_to' => $h->status_to,
+                'status_to_label' => $h->status_to_label,
+                'notes' => $h->notes,
+                'actor_name' => $h->user?->name ?? 'Admin Build n Fix',
+                'created_at' => $h->created_at?->format('Y-m-d H:i:s') ?? '',
+                'time_formatted' => $h->created_at?->format('H:i') ?? '',
+                'date_formatted' => $h->created_at?->format('d M Y') ?? '',
+            ])->values()->all(),
             'items' => $this->items->map(function (OrderItem $item): array {
                 $img = (string) ($item->product_image ?? '');
                 $resolvedImage = $img === ''
@@ -197,56 +313,85 @@ class Order extends Model
     public function trackingTimeline(): array
     {
         $method = strtolower((string) $this->fulfillment_method);
-        $currentStatus = strtolower((string) $this->order_status);
+        $currentStatus = self::normalizeStatus($this->order_status);
         $branchName = $this->branch?->name ?? 'Serdam';
-
-        if ($currentStatus === 'completed') {
-            $currentStatus = 'order_completed';
-        }
 
         if ($method === 'pickup') {
             $steps = [
                 [
-                    'key' => 'paid',
-                    'label' => 'Payment Confirmed',
-                    'description' => 'Pembayaran berhasil dan pesanan sedang diproses.',
+                    'key' => self::STATUS_MENUNGGU_DIPROSES,
+                    'label' => 'Menunggu Diproses',
+                    'description' => 'Pesanan berhasil dibuat dan menunggu konfirmasi toko.',
                 ],
                 [
-                    'key' => 'ready_to_pick_up',
-                    'label' => 'Ready to Pick Up',
-                    'description' => 'Pesanan sudah siap diambil di cabang '.$branchName.'.',
+                    'key' => self::STATUS_SEDANG_DISIAPKAN,
+                    'label' => 'Sedang Disiapkan',
+                    'description' => 'Toko cabang '.$branchName.' mulai menyiapkan barang pesanan Anda.',
                 ],
                 [
-                    'key' => 'order_completed',
-                    'label' => 'Order Completed',
-                    'description' => 'Pesanan telah diambil dan selesai.',
+                    'key' => self::STATUS_SEDANG_DIKEMAS,
+                    'label' => 'Sedang Dikemas',
+                    'description' => 'Barang pesanan sedang dikemas dan dipersiapkan untuk pengambilan.',
+                ],
+                [
+                    'key' => self::STATUS_SIAP_DIAMBIL,
+                    'label' => 'Siap Diambil',
+                    'description' => 'Pesanan sudah siap diambil langsung di cabang '.$branchName.'.',
+                ],
+                [
+                    'key' => self::STATUS_PESANAN_SELESAI,
+                    'label' => 'Pesanan Selesai',
+                    'description' => 'Pesanan telah diambil oleh customer dan transaksi selesai.',
                 ],
             ];
-            $statusOrder = ['paid', 'ready_to_pick_up', 'order_completed'];
+            $statusOrder = [
+                self::STATUS_MENUNGGU_DIPROSES,
+                self::STATUS_SEDANG_DISIAPKAN,
+                self::STATUS_SEDANG_DIKEMAS,
+                self::STATUS_SIAP_DIAMBIL,
+                self::STATUS_PESANAN_SELESAI,
+            ];
         } else {
             $steps = [
                 [
-                    'key' => 'paid',
-                    'label' => 'Payment Confirmed',
-                    'description' => 'Pembayaran berhasil dan pesanan sedang diproses.',
+                    'key' => self::STATUS_MENUNGGU_DIPROSES,
+                    'label' => 'Menunggu Diproses',
+                    'description' => 'Pesanan berhasil dibuat dan menunggu konfirmasi pengiriman toko.',
                 ],
                 [
-                    'key' => 'proses',
-                    'label' => 'Order Processing',
-                    'description' => 'Pesanan sedang dipersiapkan untuk pengiriman.',
+                    'key' => self::STATUS_SEDANG_DISIAPKAN,
+                    'label' => 'Sedang Disiapkan',
+                    'description' => 'Toko cabang '.$branchName.' sedang menyiapkan barang pesanan.',
                 ],
                 [
-                    'key' => 'on_delivery',
-                    'label' => 'On Delivery',
-                    'description' => 'Pesanan sedang dalam perjalanan ke alamat tujuan.',
+                    'key' => self::STATUS_SEDANG_DIKEMAS,
+                    'label' => 'Sedang Dikemas',
+                    'description' => 'Barang pesanan sedang dikemas dengan standar pengiriman aman.',
                 ],
                 [
-                    'key' => 'order_completed',
-                    'label' => 'Order Completed',
-                    'description' => 'Pesanan telah diterima dan selesai.',
+                    'key' => self::STATUS_SIAP_DIKIRIM,
+                    'label' => 'Siap Dikirim',
+                    'description' => 'Barang pesanan telah siap dijemput oleh armada pengantaran.',
+                ],
+                [
+                    'key' => self::STATUS_SEDANG_DIANTAR,
+                    'label' => 'Sedang Diantar',
+                    'description' => 'Pesanan dalam perjalanan pengantaran menuju alamat penerima.',
+                ],
+                [
+                    'key' => self::STATUS_PESANAN_SELESAI,
+                    'label' => 'Pesanan Selesai',
+                    'description' => 'Pesanan telah tiba di alamat tujuan dan diterima dengan baik.',
                 ],
             ];
-            $statusOrder = ['paid', 'proses', 'on_delivery', 'order_completed'];
+            $statusOrder = [
+                self::STATUS_MENUNGGU_DIPROSES,
+                self::STATUS_SEDANG_DISIAPKAN,
+                self::STATUS_SEDANG_DIKEMAS,
+                self::STATUS_SIAP_DIKIRIM,
+                self::STATUS_SEDANG_DIANTAR,
+                self::STATUS_PESANAN_SELESAI,
+            ];
         }
 
         $currentIndex = array_search($currentStatus, $statusOrder, true);
@@ -305,13 +450,16 @@ class Order extends Model
             return;
         }
 
-        if ($clean === 'completed' || $clean === 'order_completed') {
-            $query->whereIn('order_status', ['order_completed', 'completed']);
+        $normalized = self::normalizeStatus($clean);
 
-            return;
-        }
-
-        $query->where('order_status', $clean);
+        match ($normalized) {
+            self::STATUS_PESANAN_SELESAI => $query->whereIn('order_status', ['pesanan_selesai', 'order_completed', 'completed']),
+            self::STATUS_MENUNGGU_DIPROSES => $query->whereIn('order_status', ['menunggu_diproses', 'paid']),
+            self::STATUS_SEDANG_DISIAPKAN => $query->whereIn('order_status', ['sedang_disiapkan', 'proses']),
+            self::STATUS_SIAP_DIAMBIL => $query->whereIn('order_status', ['siap_diambil', 'ready_to_pick_up']),
+            self::STATUS_SEDANG_DIANTAR => $query->whereIn('order_status', ['sedang_diantar', 'on_delivery']),
+            default => $query->where('order_status', $clean),
+        };
     }
 
     /**

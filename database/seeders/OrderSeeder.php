@@ -9,6 +9,7 @@ use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 
 class OrderSeeder extends Seeder
@@ -19,9 +20,11 @@ class OrderSeeder extends Seeder
     public function run(): void
     {
         $customer = User::query()
-            ->where('email', 'customer@buildnfix.test')
+            ->where('email', 'customer@gmail.com')
             ->first()
             ?? User::query()->where('role', 'customer')->first();
+
+        $admin = User::query()->where('role', 'admin')->first();
 
         $branchesByName = Branch::query()->get()->keyBy('name');
         $productsBySku = Product::query()->get()->keyBy('sku');
@@ -37,11 +40,17 @@ class OrderSeeder extends Seeder
                 'order_number' => 'BNF-20260902-001',
                 'branch_name' => 'Serdam',
                 'fulfillment_method' => 'pickup',
-                'order_status' => 'ready_to_pick_up',
+                'order_status' => Order::STATUS_SIAP_DIAMBIL,
                 'payment_status' => 'paid',
                 'payment_method' => 'Virtual Account (BCA / Mandiri / BRI Simulation)',
                 'delivery_fee' => 0,
                 'created_at' => '2026-09-02 10:30:00',
+                'histories' => [
+                    ['status_from' => null, 'status_to' => Order::STATUS_MENUNGGU_DIPROSES, 'offset_minutes' => 0, 'notes' => 'Pesanan berhasil dibuat dan pembayaran dikonfirmasi.'],
+                    ['status_from' => Order::STATUS_MENUNGGU_DIPROSES, 'status_to' => Order::STATUS_SEDANG_DISIAPKAN, 'offset_minutes' => 15, 'notes' => 'Pesanan mulai disiapkan oleh petugas gudang cabang Serdam.'],
+                    ['status_from' => Order::STATUS_SEDANG_DISIAPKAN, 'status_to' => Order::STATUS_SEDANG_DIKEMAS, 'offset_minutes' => 45, 'notes' => 'Barang pesanan telah dikemas rapi dan aman.'],
+                    ['status_from' => Order::STATUS_SEDANG_DIKEMAS, 'status_to' => Order::STATUS_SIAP_DIAMBIL, 'offset_minutes' => 60, 'notes' => 'Barang sudah siap diambil di kasir cabang Serdam.'],
+                ],
                 'items' => [
                     ['sku' => 'SMN-001', 'quantity' => 2],
                 ],
@@ -50,7 +59,7 @@ class OrderSeeder extends Seeder
                 'order_number' => 'BNF-20260902-002',
                 'branch_name' => 'Gajahmada',
                 'fulfillment_method' => 'delivery',
-                'order_status' => 'on_delivery',
+                'order_status' => Order::STATUS_SEDANG_DIANTAR,
                 'payment_status' => 'paid',
                 'payment_method' => 'E-Wallet (GoPay / OVO / Dana Simulation)',
                 'delivery_address' => 'Jl. Gajah Mada No. 45',
@@ -58,6 +67,13 @@ class OrderSeeder extends Seeder
                 'delivery_postal_code' => '78121',
                 'delivery_fee' => 15000,
                 'created_at' => '2026-09-02 14:15:00',
+                'histories' => [
+                    ['status_from' => null, 'status_to' => Order::STATUS_MENUNGGU_DIPROSES, 'offset_minutes' => 0, 'notes' => 'Pesanan berhasil dibuat dan pembayaran dikonfirmasi.'],
+                    ['status_from' => Order::STATUS_MENUNGGU_DIPROSES, 'status_to' => Order::STATUS_SEDANG_DISIAPKAN, 'offset_minutes' => 15, 'notes' => 'Toko cabang Gajahmada mulai menyiapkan material.'],
+                    ['status_from' => Order::STATUS_SEDANG_DISIAPKAN, 'status_to' => Order::STATUS_SEDANG_DIKEMAS, 'offset_minutes' => 40, 'notes' => 'Barang pesanan sedang dikemas aman untuk pengiriman.'],
+                    ['status_from' => Order::STATUS_SEDANG_DIKEMAS, 'status_to' => Order::STATUS_SIAP_DIKIRIM, 'offset_minutes' => 65, 'notes' => 'Barang pesanan telah siap dijemput oleh armada pengantaran.'],
+                    ['status_from' => Order::STATUS_SIAP_DIKIRIM, 'status_to' => Order::STATUS_SEDANG_DIANTAR, 'offset_minutes' => 90, 'notes' => 'Armada kurir sedang dalam perjalanan menuju alamat pengiriman.'],
+                ],
                 'items' => [
                     ['sku' => 'SMN-007', 'quantity' => 2],
                 ],
@@ -66,7 +82,7 @@ class OrderSeeder extends Seeder
                 'order_number' => 'BNF-20260828-003',
                 'branch_name' => 'Kota Baru',
                 'fulfillment_method' => 'delivery',
-                'order_status' => 'order_completed',
+                'order_status' => Order::STATUS_PESANAN_SELESAI,
                 'payment_status' => 'paid',
                 'payment_method' => 'Virtual Account (BCA / Mandiri / BRI Simulation)',
                 'delivery_address' => 'Jl. Perdana No. 88',
@@ -74,6 +90,14 @@ class OrderSeeder extends Seeder
                 'delivery_postal_code' => '78124',
                 'delivery_fee' => 15000,
                 'created_at' => '2026-08-28 09:00:00',
+                'histories' => [
+                    ['status_from' => null, 'status_to' => Order::STATUS_MENUNGGU_DIPROSES, 'offset_minutes' => 0, 'notes' => 'Pesanan berhasil dibuat dan pembayaran dikonfirmasi.'],
+                    ['status_from' => Order::STATUS_MENUNGGU_DIPROSES, 'status_to' => Order::STATUS_SEDANG_DISIAPKAN, 'offset_minutes' => 20, 'notes' => 'Pesanan mulai disiapkan di gudang Kota Baru.'],
+                    ['status_from' => Order::STATUS_SEDANG_DISIAPKAN, 'status_to' => Order::STATUS_SEDANG_DIKEMAS, 'offset_minutes' => 50, 'notes' => 'Barang telah selesai dikemas.'],
+                    ['status_from' => Order::STATUS_SEDANG_DIKEMAS, 'status_to' => Order::STATUS_SIAP_DIKIRIM, 'offset_minutes' => 70, 'notes' => 'Barang siap dikirim ke alamat tujuan.'],
+                    ['status_from' => Order::STATUS_SIAP_DIKIRIM, 'status_to' => Order::STATUS_SEDANG_DIANTAR, 'offset_minutes' => 95, 'notes' => 'Pesanan sedang diantar oleh kurir toko.'],
+                    ['status_from' => Order::STATUS_SEDANG_DIANTAR, 'status_to' => Order::STATUS_PESANAN_SELESAI, 'offset_minutes' => 140, 'notes' => 'Pesanan telah diterima customer dengan baik. Transaksi selesai.'],
+                ],
                 'items' => [
                     ['sku' => 'SMN-001', 'quantity' => 5],
                     ['sku' => 'CAT-001', 'quantity' => 1],
@@ -83,11 +107,14 @@ class OrderSeeder extends Seeder
                 'order_number' => 'BNF-20260902-004',
                 'branch_name' => 'Serdam',
                 'fulfillment_method' => 'pickup',
-                'order_status' => 'paid',
+                'order_status' => Order::STATUS_MENUNGGU_DIPROSES,
                 'payment_status' => 'paid',
                 'payment_method' => 'Credit / Debit Simulation',
                 'delivery_fee' => 0,
                 'created_at' => '2026-09-02 18:45:00',
+                'histories' => [
+                    ['status_from' => null, 'status_to' => Order::STATUS_MENUNGGU_DIPROSES, 'offset_minutes' => 0, 'notes' => 'Pesanan berhasil dibuat dan pembayaran dikonfirmasi.'],
+                ],
                 'items' => [
                     ['sku' => 'SMN-004', 'quantity' => 1],
                 ],
@@ -130,7 +157,7 @@ class OrderSeeder extends Seeder
             $deliveryFee = (int) $entry['delivery_fee'];
             $total = $subtotal + $deliveryFee;
             $customerName = $customer?->name ?? 'Customer';
-            $customerEmail = $customer?->email ?? 'customer@buildnfix.test';
+            $customerEmail = $customer?->email ?? 'customer@gmail.com';
             $customerPhone = $customer?->phone ?? '081234567890';
 
             $order = Order::updateOrCreate(
@@ -152,6 +179,7 @@ class OrderSeeder extends Seeder
                     'delivery_notes' => null,
                     'subtotal' => $subtotal,
                     'delivery_fee' => $deliveryFee,
+                    'discount' => 0,
                     'total' => $total,
                 ]
             );
@@ -164,6 +192,21 @@ class OrderSeeder extends Seeder
             $order->items()->delete();
             foreach ($preparedItems as $itemData) {
                 OrderItem::create(array_merge(['order_id' => $order->id], $itemData));
+            }
+
+            // Seed status histories
+            $order->statusHistories()->delete();
+            $baseTime = Carbon::parse($entry['created_at']);
+            foreach ($entry['histories'] as $h) {
+                $hTime = $baseTime->copy()->addMinutes($h['offset_minutes']);
+                $order->statusHistories()->create([
+                    'user_id' => $admin?->id ?? $customer?->id,
+                    'status_from' => $h['status_from'],
+                    'status_to' => $h['status_to'],
+                    'notes' => $h['notes'],
+                    'created_at' => $hTime,
+                    'updated_at' => $hTime,
+                ]);
             }
 
             $paymentCode = 'PAY-'.str_replace('BNF-', '', $entry['order_number']);

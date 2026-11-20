@@ -256,7 +256,7 @@ class CheckoutController extends Controller
                         : 'pickup';
                     $isDelivery = $itemFulfillment === 'delivery';
                     $deliveryFeeForOrder = $isDelivery ? self::DELIVERY_FEE_PER_BRANCH : 0;
-                    $orderStatus = $isDelivery ? 'proses' : 'ready_to_pick_up';
+                    $orderStatus = Order::STATUS_MENUNGGU_DIPROSES;
 
                     $branchSubtotal = 0;
                     $linePayloads = [];
@@ -361,6 +361,13 @@ class CheckoutController extends Controller
 
                     $payment->update([
                         'payment_code' => 'PAY-'.now()->format('Ymd').'-'.str_pad((string) $payment->id, 3, '0', STR_PAD_LEFT),
+                    ]);
+
+                    $order->statusHistories()->create([
+                        'user_id' => $user->id,
+                        'status_from' => null,
+                        'status_to' => Order::STATUS_MENUNGGU_DIPROSES,
+                        'notes' => 'Pesanan berhasil dibuat dan pembayaran dikonfirmasi.',
                     ]);
 
                     $orders[] = $order;
