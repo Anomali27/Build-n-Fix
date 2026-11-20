@@ -80,14 +80,13 @@
                 </span>
             </div>
 
-            <button type="button" 
-                    @click="openOrderModal('{{ $order['order_number'] }}')" 
-                    class="px-4 py-2 rounded-xl bg-gray-900 hover:bg-black text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 group">
-                <span>View Detail</span>
+            <a href="{{ route('orders.show', $order['order_number']) }}" 
+               class="px-4 py-2 rounded-xl bg-gray-900 hover:bg-black text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 group">
+                <span>Detail Pesanan</span>
                 <svg class="w-3.5 h-3.5 text-gray-400 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
-            </button>
+            </a>
         </div>
     </div>
 </div>

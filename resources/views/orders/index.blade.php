@@ -5,33 +5,19 @@
      x-data="{
          role: '{{ $role }}',
          activeTab: '{{ $activeTab }}',
-         activeModal: {{ $selectedOrder ? 'true' : 'false' }},
-         modalOrder: @js($selectedOrder),
-         allOrders: @js($allOrders),
          managementOrders: @js($managementOrders),
          statusUpdateModal: false,
          statusOrderNumber: '',
-         statusCurrentStatus: 'paid',
+         statusCurrentStatus: 'menunggu_diproses',
+         statusFulfillmentMethod: 'pickup',
+         statusNotes: '',
 
-         openOrderModal(orderNumber) {
-             let found = this.allOrders.find(o => o.order_number === orderNumber);
-             if (!found) {
-                 found = this.managementOrders.find(o => o.order_number === orderNumber);
-             }
-             if (found) {
-                 this.modalOrder = found;
-                 this.activeModal = true;
-             } else {
-                 window.location.href = '{{ route("orders.index") }}?order=' + orderNumber;
-             }
-         },
-         openStatusModal(orderNumber, currentStatus) {
+         openStatusModal(orderNumber, currentStatus, fulfillmentMethod) {
              this.statusOrderNumber = orderNumber;
-             this.statusCurrentStatus = currentStatus === 'completed' ? 'order_completed' : currentStatus;
+             this.statusCurrentStatus = currentStatus;
+             this.statusFulfillmentMethod = (fulfillmentMethod || 'pickup').toLowerCase();
+             this.statusNotes = '';
              this.statusUpdateModal = true;
-         },
-         closeModal() {
-             this.activeModal = false;
          },
          formatRupiah(amount) {
              return 'Rp ' + (amount || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
@@ -59,6 +45,14 @@
         @if(session('error'))
             <div class="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center justify-between">
                 <span>{{ session('error') }}</span>
+            </div>
+        @endif
+
+        @if($errors->any())
+            <div class="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold space-y-1">
+                @foreach($errors->all() as $err)
+                    <p>• {{ $err }}</p>
+                @endforeach
             </div>
         @endif
 
@@ -106,14 +100,16 @@
                 </select>
 
                 <select name="status" onchange="this.form.submit()"
-                        class="w-full sm:w-44 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F97316]">
+                        class="w-full sm:w-48 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F97316]">
                     <option value="all" {{ $statusFilter === 'all' ? 'selected' : '' }}>Semua Status</option>
-                    <option value="paid" {{ $statusFilter === 'paid' ? 'selected' : '' }}>Paid / Menunggu</option>
-                    <option value="proses" {{ $statusFilter === 'proses' ? 'selected' : '' }}>Diproses</option>
-                    <option value="ready_to_pick_up" {{ $statusFilter === 'ready_to_pick_up' ? 'selected' : '' }}>Siap Diambil</option>
-                    <option value="on_delivery" {{ $statusFilter === 'on_delivery' ? 'selected' : '' }}>Dalam Pengiriman</option>
-                    <option value="order_completed" {{ in_array($statusFilter, ['order_completed', 'completed'], true) ? 'selected' : '' }}>Selesai</option>
-                    <option value="cancelled" {{ $statusFilter === 'cancelled' ? 'selected' : '' }}>Dibatalkan</option>
+                    <option value="menunggu_diproses" {{ in_array($statusFilter, ['menunggu_diproses', 'paid'], true) ? 'selected' : '' }}>Menunggu Diproses</option>
+                    <option value="sedang_disiapkan" {{ in_array($statusFilter, ['sedang_disiapkan', 'proses'], true) ? 'selected' : '' }}>Sedang Disiapkan</option>
+                    <option value="sedang_dikemas" {{ $statusFilter === 'sedang_dikemas' ? 'selected' : '' }}>Sedang Dikemas</option>
+                    <option value="siap_dikirim" {{ $statusFilter === 'siap_dikirim' ? 'selected' : '' }}>Siap Dikirim (Delivery)</option>
+                    <option value="sedang_diantar" {{ in_array($statusFilter, ['sedang_diantar', 'on_delivery'], true) ? 'selected' : '' }}>Sedang Diantar (Delivery)</option>
+                    <option value="siap_diambil" {{ in_array($statusFilter, ['siap_diambil', 'ready_to_pick_up'], true) ? 'selected' : '' }}>Siap Diambil (Pickup)</option>
+                    <option value="pesanan_selesai" {{ in_array($statusFilter, ['pesanan_selesai', 'order_completed', 'completed'], true) ? 'selected' : '' }}>Pesanan Selesai</option>
+                    <option value="cancelled" {{ in_array($statusFilter, ['cancelled', 'dibatalkan'], true) ? 'selected' : '' }}>Dibatalkan</option>
                 </select>
 
                 <button type="submit" class="px-4 py-2 bg-gray-900 text-white font-bold text-xs rounded-xl shadow-xs">
@@ -152,7 +148,7 @@
                                     $itemsCount += ($it['quantity'] ?? 1);
                                     $productNames[] = $it['product_name'] ?? 'Produk';
                                 }
-                                $st = $ord['order_status'] ?? 'paid';
+                                $st = $ord['order_status'] ?? 'menunggu_diproses';
                             @endphp
                             <tr class="hover:bg-gray-50/80 transition-colors">
                                 <!-- 1. Kode Pesanan -->
@@ -207,15 +203,14 @@
                                 <!-- 9. Aksi -->
                                 <td class="py-4 px-5 text-right">
                                     <div class="flex items-center justify-end gap-1.5">
-                                        <button type="button"
-                                                @click="openOrderModal('{{ $ord['order_number'] }}')"
-                                                class="px-2.5 py-1.5 rounded-lg bg-gray-100 hover:bg-[#F97316] hover:text-white font-bold text-[11px] transition-all">
+                                        <a href="{{ route('orders.show', $ord['order_number']) }}"
+                                           class="px-2.5 py-1.5 rounded-lg bg-gray-100 hover:bg-[#F97316] hover:text-white font-bold text-[11px] transition-all">
                                             Detail
-                                        </button>
-                                        @if($role === 'admin')
+                                        </a>
+                                        @if($role === 'admin' || $role === 'owner')
                                             <button type="button"
-                                                    @click="openStatusModal('{{ $ord['order_number'] }}', '{{ $st }}')"
-                                                    class="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-[11px] border border-emerald-200 transition-colors">
+                                                    @click="openStatusModal('{{ $ord['order_number'] }}', '{{ $st }}', '{{ $ord['fulfillment_method'] ?? 'pickup' }}')"
+                                                    class="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-[11px] border border-emerald-200 transition-colors cursor-pointer">
                                                 Update
                                             </button>
                                         @endif
@@ -234,16 +229,19 @@
             </div>
         </div>
 
-        <!-- Admin Update Status Modal -->
-        @if($role === 'admin')
+        <!-- Admin Update Status Modal (Strictly following Fulfillment Method) -->
+        @if(in_array($role, ['admin', 'owner']))
             <div x-show="statusUpdateModal" x-cloak
                  class="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
                 <div @click.away="statusUpdateModal = false"
-                     class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-gray-100">
+                     class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-gray-100 animate-in fade-in zoom-in duration-200">
                     <div class="flex items-center justify-between pb-3 border-b border-gray-100 mb-4">
                         <div>
                             <h3 class="font-black text-base text-gray-900">Perbarui Status Pesanan</h3>
                             <p class="text-xs font-mono text-gray-500" x-text="statusOrderNumber"></p>
+                            <p class="text-[11px] text-gray-400 mt-0.5">
+                                Metode: <strong x-text="statusFulfillmentMethod === 'delivery' ? 'Delivery' : 'Pickup di Toko'"></strong>
+                            </p>
                         </div>
                         <button type="button" @click="statusUpdateModal = false" class="text-gray-400 hover:text-gray-600">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -256,17 +254,43 @@
                         @csrf
                         @method('PUT')
 
+                        <!-- DELIVERY SPECIFIC STATUSES (Section 3.A) -->
+                        <template x-if="statusFulfillmentMethod === 'delivery'">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase mb-2">Pilih Status Baru (Delivery)</label>
+                                <select name="order_status" x-model="statusCurrentStatus"
+                                        class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F97316]">
+                                    <option value="menunggu_diproses">1. Menunggu Diproses</option>
+                                    <option value="sedang_disiapkan">2. Sedang Disiapkan</option>
+                                    <option value="sedang_dikemas">3. Sedang Dikemas</option>
+                                    <option value="siap_dikirim">4. Siap Dikirim</option>
+                                    <option value="sedang_diantar">5. Sedang Diantar</option>
+                                    <option value="pesanan_selesai">6. Pesanan Selesai</option>
+                                    <option value="cancelled">Dibatalkan</option>
+                                </select>
+                            </div>
+                        </template>
+
+                        <!-- PICKUP SPECIFIC STATUSES (Section 3.B) -->
+                        <template x-if="statusFulfillmentMethod !== 'delivery'">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase mb-2">Pilih Status Baru (Pickup)</label>
+                                <select name="order_status" x-model="statusCurrentStatus"
+                                        class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F97316]">
+                                    <option value="menunggu_diproses">1. Menunggu Diproses</option>
+                                    <option value="sedang_disiapkan">2. Sedang Disiapkan</option>
+                                    <option value="sedang_dikemas">3. Sedang Dikemas</option>
+                                    <option value="siap_diambil">4. Siap Diambil</option>
+                                    <option value="pesanan_selesai">5. Pesanan Selesai / Sudah Diambil</option>
+                                    <option value="cancelled">Dibatalkan</option>
+                                </select>
+                            </div>
+                        </template>
+
                         <div>
-                            <label class="block text-xs font-bold text-gray-700 uppercase mb-2">Pilih Status Baru</label>
-                            <select name="order_status" x-model="statusCurrentStatus"
-                                    class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F97316]">
-                                <option value="paid">Paid (Menunggu Diproses)</option>
-                                <option value="proses">Proses (Sedang Disiapkan)</option>
-                                <option value="ready_to_pick_up">Siap Diambil di Toko (Ready to Pick Up)</option>
-                                <option value="on_delivery">Dalam Pengiriman (On Delivery)</option>
-                                <option value="order_completed">Selesai (Order Completed)</option>
-                                <option value="cancelled">Dibatalkan (Cancelled)</option>
-                            </select>
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Catatan Riwayat (Opsional)</label>
+                            <input type="text" name="notes" placeholder="Contoh: Barang sudah dikemas aman"
+                                   class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F97316]">
                         </div>
 
                         <div class="pt-3 border-t border-gray-100 flex items-center justify-end gap-2">
@@ -282,9 +306,8 @@
             </div>
         @endif
 
-
     <!-- ──────────────────────────────────────────────────────────── -->
-    <!-- 2. CUSTOMER ORDER CENTER (NOTE 6 CARD & TABS) -->
+    <!-- 2. CUSTOMER ORDER CENTER -->
     <!-- ──────────────────────────────────────────────────────────── -->
     @else
         <!-- Breadcrumb & Back Button -->
@@ -331,7 +354,7 @@
             </a>
         </div>
 
-        <!-- 4 Filter Tabs (Note 6) -->
+        <!-- 4 Filter Tabs -->
         <div class="flex items-center gap-2 overflow-x-auto pb-2 mb-6 border-b border-gray-200">
             <a href="{{ route('orders.index', ['tab' => 'all']) }}"
                class="px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all {{ $activeTab === 'all' ? 'bg-[#F97316] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100' }}">
@@ -343,7 +366,7 @@
             </a>
             <a href="{{ route('orders.index', ['tab' => 'tracking']) }}"
                class="px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all {{ $activeTab === 'tracking' ? 'bg-[#F97316] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100' }}">
-                Pesanan Dalam Proses & Pelacakan ({{ count($trackingOrders) }})
+                Pesanan Dalam Proses ({{ count($trackingOrders) }})
             </a>
             <a href="{{ route('orders.index', ['tab' => 'history']) }}"
                class="px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all {{ $activeTab === 'history' ? 'bg-[#F97316] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100' }}">
@@ -351,7 +374,7 @@
             </a>
         </div>
 
-        <!-- Orders List (Customer Cards - Note 6) -->
+        <!-- Orders List (Customer Cards) -->
         <div class="space-y-4">
             @php
                 $displayOrders = match($activeTab) {
@@ -377,7 +400,7 @@
                         </div>
 
                         <div class="flex items-center gap-2">
-                            <x-status-badge :status="$order['order_status'] ?? 'paid'" />
+                            <x-status-badge :status="$order['order_status'] ?? 'menunggu_diproses'" />
                             @if(($order['payment_status'] ?? 'paid') === 'paid')
                                 <span class="px-3 py-1 rounded-full text-[11px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200">
                                     Sudah Bayar
@@ -412,7 +435,7 @@
                         @endforeach
                     </div>
 
-                    <!-- Bottom Row: Branch & Method + Total Payment & Detail Button on Far Right -->
+                    <!-- Bottom Row: Branch & Method + Total Payment & Detail Pesanan Button (Section 10) -->
                     <div class="pt-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div class="flex flex-wrap items-center gap-2.5 text-xs">
                             <span class="px-2.5 py-1 rounded-lg bg-gray-100 font-bold text-gray-800">
@@ -430,11 +453,15 @@
                                     Rp {{ number_format($order['total'], 0, ',', '.') }}
                                 </span>
                             </div>
-                            <button type="button"
-                                    @click="openOrderModal('{{ $order['order_number'] }}')"
-                                    class="px-4 py-2.5 rounded-xl bg-gray-900 hover:bg-black text-white font-bold text-xs shadow-xs transition-all whitespace-nowrap">
-                                Detail & Pelacakan
-                            </button>
+
+                            <!-- "Detail Pesanan" button linking to dedicated order show page (Section 1 & 10) -->
+                            <a href="{{ route('orders.show', $order['order_number']) }}"
+                               class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gray-900 hover:bg-black text-white font-bold text-xs shadow-xs transition-all whitespace-nowrap cursor-pointer">
+                                <span>Detail Pesanan</span>
+                                <svg class="w-3.5 h-3.5 text-gray-400 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -448,116 +475,6 @@
             @endforelse
         </div>
     @endif
-
-    <!-- ──────────────────────────────────────────────────────────── -->
-    <!-- 3. SHARED ORDER DETAIL & TRACKING POPUP MODAL (Alpine.js) -->
-    <!-- ──────────────────────────────────────────────────────────── -->
-    <template x-if="activeModal && modalOrder">
-        <div class="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div @click.away="closeModal()"
-                 class="bg-white rounded-3xl max-w-2xl w-full p-6 md:p-8 shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in duration-200">
-
-                <div class="flex items-center justify-between pb-4 border-b border-gray-100 mb-6">
-                    <div>
-                        <span class="text-[10px] font-mono font-bold text-[#F97316] uppercase tracking-wider block">Rincian Faktur & Pelacakan Pesanan</span>
-                        <h3 class="font-black text-xl text-gray-900 mt-0.5" x-text="modalOrder.order_number"></h3>
-                        <p class="text-[11px] text-gray-500 mt-0.5" x-text="modalOrder.created_at_formatted"></p>
-                    </div>
-                    <button type="button" @click="closeModal()" class="text-gray-400 hover:text-gray-600">
-                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-
-                <!-- Modal Info Grid -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs mb-6">
-                    <div class="p-3.5 bg-gray-50 rounded-2xl border border-gray-100">
-                        <span class="text-[10px] font-bold text-gray-400 uppercase block">Customer</span>
-                        <span class="font-extrabold text-gray-900 mt-0.5 block" x-text="modalOrder.customer_name"></span>
-                        <span class="text-[11px] text-gray-500 block" x-text="modalOrder.customer_email"></span>
-                    </div>
-                    <div class="p-3.5 bg-gray-50 rounded-2xl border border-gray-100">
-                        <span class="text-[10px] font-bold text-gray-400 uppercase block">Cabang & Pengambilan</span>
-                        <span class="font-extrabold text-gray-900 mt-0.5 block" x-text="'Cabang ' + modalOrder.branch_name"></span>
-                        <span class="text-[11px] text-gray-500 block" x-text="modalOrder.fulfillment_method === 'delivery' ? ('Delivery: ' + (modalOrder.delivery_address || '-')) : ('Pickup di Toko: ' + (modalOrder.branch_address || 'Build n Fix ' + modalOrder.branch_name))"></span>
-                    </div>
-                </div>
-
-                <!-- Tracking Timeline -->
-                <div class="mb-6">
-                    <h4 class="text-xs font-extrabold text-gray-900 uppercase mb-3">Pelacakan Pesanan</h4>
-                    <div class="relative pl-6 border-l-2 border-gray-200 space-y-4">
-                        <template x-for="(step, idx) in (modalOrder.timeline || [])" :key="step.key">
-                            <div class="relative">
-                                <div class="absolute -left-[31px] top-0.5 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
-                                     :class="step.current ? 'bg-[#F97316] text-white ring-4 ring-orange-100 shadow-md' : (step.completed ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-400')">
-                                    <span x-text="step.completed && !step.current ? '✓' : (idx + 1)"></span>
-                                </div>
-                                <div class="rounded-xl p-3 border"
-                                     :class="step.current ? 'bg-orange-50/40 border-orange-200' : 'bg-gray-50/80 border-gray-100'">
-                                    <div class="flex items-center justify-between gap-2">
-                                        <h5 class="text-xs font-extrabold"
-                                            :class="step.current ? 'text-[#F97316]' : (step.completed ? 'text-gray-900' : 'text-gray-400')"
-                                            x-text="step.label"></h5>
-                                        <template x-if="step.current">
-                                            <span class="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-[#F97316] text-white">Status Saat Ini</span>
-                                        </template>
-                                    </div>
-                                    <p class="text-[11px] text-gray-500 mt-1" x-text="step.description"></p>
-                                </div>
-                            </div>
-                        </template>
-                    </div>
-                </div>
-
-                <!-- Products Table in Modal -->
-                <div class="space-y-3 mb-6">
-                    <h4 class="text-xs font-extrabold text-gray-900 uppercase">Item yang Dipesan</h4>
-                    <div class="border border-gray-100 rounded-2xl overflow-hidden divide-y divide-gray-100">
-                        <template x-for="item in (modalOrder.items || [])" :key="item.sku + item.product_name">
-                            <div class="p-3 flex items-center justify-between gap-4">
-                                <div class="flex items-center gap-3">
-                                    <img :src="item.image" class="w-10 h-10 rounded-xl object-cover bg-gray-50">
-                                    <div>
-                                        <p class="font-extrabold text-xs text-gray-900" x-text="item.product_name"></p>
-                                        <p class="text-[10px] text-gray-400 font-mono" x-text="formatRupiah(item.unit_price) + ' × ' + item.quantity"></p>
-                                    </div>
-                                </div>
-                                <span class="font-black text-xs text-gray-900" x-text="formatRupiah(item.subtotal)"></span>
-                            </div>
-                        </template>
-                    </div>
-                </div>
-
-                <!-- Total Box -->
-                <div class="p-4 bg-orange-50/60 rounded-2xl border border-orange-100 space-y-2">
-                    <div class="flex items-center justify-between text-xs text-gray-600">
-                        <span>Subtotal</span>
-                        <span class="font-bold text-gray-900" x-text="formatRupiah(modalOrder.subtotal)"></span>
-                    </div>
-                    <div class="flex items-center justify-between text-xs text-gray-600">
-                        <span>Biaya Pengiriman</span>
-                        <span class="font-bold text-gray-900" x-text="formatRupiah(modalOrder.delivery_fee)"></span>
-                    </div>
-                    <div class="pt-2 border-t border-orange-200/70 flex items-center justify-between">
-                        <div>
-                            <span class="text-xs text-gray-600 font-semibold">Total Pembayaran</span>
-                            <p class="text-lg font-black text-[#F97316]" x-text="formatRupiah(modalOrder.total)"></p>
-                        </div>
-                        <span class="px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800" x-text="modalOrder.payment_badge_label + ' • ' + modalOrder.status_label"></span>
-                    </div>
-                </div>
-
-                <div class="mt-6 pt-4 border-t border-gray-100 flex justify-end">
-                    <button type="button" @click="closeModal()" class="px-5 py-2.5 rounded-xl bg-gray-900 text-white font-bold text-xs">
-                        Tutup
-                    </button>
-                </div>
-
-            </div>
-        </div>
-    </template>
 
 </div>
 @endsection

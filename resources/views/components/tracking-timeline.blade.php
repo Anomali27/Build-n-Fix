@@ -48,7 +48,7 @@
             <div>
                 <h5 class="text-xs font-extrabold text-amber-900">Lokasi Pengambilan (Cabang {{ $branchName }})</h5>
                 <p class="text-[11px] text-amber-700 mt-0.5 leading-relaxed">
-                    Pesanan dapat diambil langsung di toko Build n Fix cabang <strong>{{ $branchName }}</strong> setelah status berubah menjadi <span class="font-bold text-[#F97316]">Ready to Pick Up</span>.
+                    Pesanan dapat diambil langsung di toko Build n Fix cabang <strong>{{ $branchName }}</strong> setelah status berubah menjadi <span class="font-bold text-[#F97316]">Siap Diambil</span>.
                 </p>
             </div>
         </div>

@@ -149,7 +149,7 @@
                                         <x-status-badge :status="$ord['order_status'] ?? 'paid'" />
                                     </td>
                                     <td class="py-3.5 text-right">
-                                        <a href="{{ route('orders.index', ['order' => $ord['order_number']]) }}"
+                                        <a href="{{ route('orders.show', $ord['order_number']) }}"
                                            class="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-[#F97316] hover:text-white font-bold text-[11px] transition-all">
                                             Detail
                                         </a>
@@ -400,9 +400,9 @@
                             <span class="font-black text-sm text-gray-900">
                                 Rp {{ number_format($cOrd['total'], 0, ',', '.') }}
                             </span>
-                            <a href="{{ route('orders.index', ['order' => $cOrd['order_number']]) }}"
+                            <a href="{{ route('orders.show', $cOrd['order_number']) }}"
                                class="px-3 py-1.5 rounded-xl bg-white hover:bg-[#F97316] hover:text-white text-gray-800 font-bold text-xs border border-gray-200 transition-all shadow-xs">
-                                Lacak Pesanan
+                                Detail Pesanan
                             </a>
                         </div>
                     </div>
